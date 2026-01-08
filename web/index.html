@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wazuh Launcher</title>
+
+    <script type="text/javascript" src="/eel.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        wazuh: {
+                            blue: '#0078d4',
+                            dark: '#1e293b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Animation เล็กน้อย */
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-enter {
+            animation: fade-in 0.5s ease-out forwards;
+        }
+
+        /* ปรับ Scrollbar ให้สวยงาม */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-900 text-white h-screen flex items-center justify-center selection:bg-sky-500 selection:text-white overflow-hidden">
+
+    <div
+        class="animate-enter w-full max-w-md bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-2xl shadow-2xl p-8 mx-4 relative overflow-hidden">
+
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500"></div>
+
+        <div class="text-center mb-8">
+            <div
+                class="inline-flex items-center justify-center w-24 h-24 bg-slate-700 rounded-full mb-4 shadow-lg ring-1 ring-slate-600">
+                <img src="logo.jpg" class="w-20 max-w-full h-auto object-contain rounded-full" alt="Logo">
+            </div>
+            <h1 class="text-2xl font-bold tracking-wide">Wazuh <span class="text-sky-400">Launcher</span></h1>
+            <p class="text-slate-400 text-sm mt-1 font-light">Secure Endpoint Monitoring System</p>
+        </div>
+
+        <div class="mb-6">
+            <div
+                class="flex items-center justify-between px-3 py-1 bg-black rounded-t-lg border border-slate-700 border-b-0">
+                <span class="text-xs text-slate-500 font-mono">Terminal Output</span>
+                <div class="flex space-x-1.5">
+                    <div class="w-2 h-2 rounded-full bg-red-500/50"></div>
+                    <div class="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                    <div class="w-2 h-2 rounded-full bg-green-500/50"></div>
+                </div>
+            </div>
+            <div id="status-box"
+                class="bg-black/80 border border-slate-700 rounded-b-lg p-4 h-24 overflow-y-auto font-mono text-xs shadow-inner">
+                <p id="status" class="text-yellow-400">> System initialized...</p>
+                <p class="text-slate-600 mt-1">> Waiting for command...</p>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            <!-- OS Input -->
+            <div>
+                <label class="text-xs text-slate-400 ml-1">ระบบปฏิบัติการ (Operating System)</label>
+                <input type="text" id="os_input" placeholder="เช่น Windows 11, Windows 10"
+                    class="w-full mt-1 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600">
+            </div>
+            <button onclick="installVBox()"
+                class="group w-full flex items-center justify-center p-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium shadow-lg shadow-blue-900/20 transition-all active:scale-95">
+                <span class="mr-2 text-lg group-hover:animate-bounce">💾</span>
+                0. ติดตั้ง VirtualBox (ถ้ายังไม่มี)
+            </button>
+            <button onclick="checkSys()"
+                class="group w-full flex items-center justify-center p-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 transition-all active:scale-95 border border-slate-600">
+                <span class="mr-2 group-hover:rotate-12 transition-transform">🔍</span>
+                1. ตรวจสอบระบบ
+            </button>
+
+            <button onclick="installVM()"
+                class="group w-full flex items-center justify-center p-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-medium shadow-lg shadow-orange-900/20 transition-all active:scale-95">
+                <span class="mr-2 group-hover:scale-110 transition-transform">📦</span>
+                2. ติดตั้ง Wazuh (Install)
+            </button>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="startVM()"
+                    class="group w-full flex items-center justify-center p-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium shadow-lg shadow-emerald-900/20 transition-all active:scale-95">
+                    <span class="mr-2 group-hover:translate-x-1 transition-transform">🚀</span>
+                    Start
+                </button>
+
+                <button onclick="stopVM()"
+                    class="group w-full flex items-center justify-center p-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-medium shadow-lg shadow-red-900/20 transition-all active:scale-95">
+                    <span class="mr-2">🛑</span>
+                    Stop
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-6 text-center">
+            <p class="text-[10px] text-slate-600 uppercase tracking-widest">Powered by VirtualBox & Python</p>
+        </div>
+    </div>
+
+    <script>
+        // ฟังก์ชันช่วยเขียน Log ลงหน้าจอ Terminal แบบสวยๆ
+        function setStatus(msg, type = 'info') {
+            const el = document.getElementById('status');
+            const box = document.getElementById('status-box');
+
+            // สร้างบรรทัดใหม่
+            const p = document.createElement('p');
+            p.innerText = `> ${msg}`;
+            p.className = 'mt-1 break-words'; // Tailwind classes
+
+            // กำหนดสีตามประเภทข้อความ
+            if (type === 'success') p.classList.add('text-emerald-400');
+            else if (type === 'error') p.classList.add('text-red-400');
+            else if (type === 'warning') p.classList.add('text-yellow-400');
+            else p.classList.add('text-sky-300');
+
+            // เพิ่มลงในกล่องและเลื่อนลงล่างสุด
+            box.appendChild(p);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function checkSys() {
+            setStatus("กำลังตรวจสอบระบบ...", "warning");
+            try {
+                let res = await eel.check_system()();
+                setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
+            } catch (e) {
+                setStatus("Error: เชื่อมต่อ Python ไม่ได้", "error");
+            }
+        }
+
+        async function installVM() {
+            if (!confirm("ยืนยันการติดตั้ง? (อาจใช้เวลา 5-10 นาที)")) return;
+            setStatus("เริ่มกระบวนการติดตั้ง...", "warning");
+            setStatus("กรุณารอสักครู่ ห้ามปิดโปรแกรม...", "info");
+
+            try {
+                let res = await eel.install_vm()();
+                setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
+            } catch (e) {
+                setStatus("เกิดข้อผิดพลาดในการติดตั้ง", "error");
+            }
+        }
+
+        async function startVM() {
+            setStatus("กำลังสั่งเปิดเครื่อง...", "warning");
+            try {
+                let res = await eel.start_vm()();
+                setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
+            } catch (e) {
+                setStatus("สั่ง Start ไม่สำเร็จ", "error");
+            }
+        }
+
+        async function stopVM() {
+            if (!confirm("ต้องการปิดเครื่อง Wazuh ใช่ไหม?")) return;
+            setStatus("ส่งคำสั่งปิดเครื่อง...", "warning");
+            try {
+                let res = await eel.stop_vm()();
+                setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
+            } catch (e) {
+                setStatus("สั่ง Stop ไม่สำเร็จ", "error");
+            }
+        }
+
+        async function installVBox() {
+            let osVal = document.getElementById('os_input').value;
+            if (!osVal) {
+                alert("กรุณากรอกระบบปฏิบัติการก่อน (Please enter OS)");
+                document.getElementById('os_input').focus();
+                return;
+            }
+
+            setStatus("กำลังดาวน์โหลดและติดตั้ง VirtualBox... (ใช้เวลาสักพัก)", "warning");
+            try {
+                let res = await eel.install_virtualbox(osVal)();
+                setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
+            } catch (e) {
+                setStatus("ติดตั้ง VirtualBox ไม่สำเร็จ", "error");
+            }
+        }
+    </script>
+</body>
+
+</html>
