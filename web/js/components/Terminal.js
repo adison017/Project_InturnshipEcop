@@ -15,9 +15,21 @@ export default function Terminal() {
             </div>
         </div>
         <div id="status-box"
-            class="bg-black/40 border border-white/10 rounded-b-xl p-4 h-32 overflow-y-auto font-['Silkscreen',_'Chakra_Petch',_monospace] font-medium text-xs shadow-inner scroll-smooth backdrop-blur-sm">
-            <p id="status" class="text-emerald-400">> System initialized...</p>
-            <p class="text-slate-500 mt-1">> Waiting for command...</p>
+            class="bg-black/40 border border-white/10 rounded-b-xl p-4 h-32 overflow-y-auto font-['Silkscreen',_'Sarabun',_'Chakra_Petch',_monospace] font-medium text-[11px] shadow-inner scroll-smooth backdrop-blur-sm">
+            
+            <div class="mt-1.5 px-2 py-1 rounded-md break-words flex items-start bg-emerald-500/10 hover:bg-emerald-500/20">
+                <span class="mr-2 opacity-70 select-none flex items-center h-full pt-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </span>
+                <span class="text-emerald-400">System initialized...</span>
+            </div>
+
+            <div class="mt-1.5 px-2 py-1 rounded-md break-words flex items-start bg-sky-500/5 hover:bg-sky-500/10">
+                <span class="mr-2 opacity-70 select-none flex items-center h-full pt-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </span>
+                <span class="text-slate-500">Waiting for command...</span>
+            </div>
         </div>
     </div>
     `;
