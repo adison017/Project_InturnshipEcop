@@ -19,6 +19,12 @@ VBOX_PATH_WIN = r"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 VBOX_INSTALLER_URL = "https://download.virtualbox.org/virtualbox/7.2.4/VirtualBox-7.2.4-170995-Win.exe"
 VBOX_INSTALLER_NAME = "VirtualBox-Setup.exe"
 
+# Credentials
+VM_USER = "wazuh-user"
+VM_PASS = "wazuh"
+WAZUH_USER = "admin"
+WAZUH_PASS = "SecretPassword"
+
 # Initialize Eel
 eel.init('web')
 
@@ -173,6 +179,62 @@ def stop_vm():
         return {"status": "success", "msg": "สั่งปิดเครื่องแล้ว"}
     except:
         return {"status": "error", "msg": "สั่งปิดไม่ได้"}
+
+@eel.expose
+def get_wazuh_ip():
+    try:
+        vbox = get_virtualbox_path()
+        # คำสั่งถาม IP จาก Guest Utilities ใน VM
+        # /VirtualBox/GuestInfo/Net/0/V4/IP คือ Key มาตรฐานสำหรับ IP Address แรก
+        cmd = [vbox, "guestproperty", "get", VM_NAME, "/VirtualBox/GuestInfo/Net/0/V4/IP"]
+        
+        # รันคำสั่งแบบซ่อนหน้าต่าง
+        if IS_WINDOWS:
+            result = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+        output = result.stdout.strip()
+
+        # ผลลัพธ์ที่ได้จะเป็น format: "Value: 192.168.1.xxx" หรือ "No value set!"
+        if "Value:" in output:
+            # ตัดเอาเฉพาะตัวเลข IP
+            ip_address = output.split("Value:")[1].strip()
+            return {"status": "success", "ip": ip_address}
+        else:
+            return {"status": "pending", "msg": "กำลังรอ IP..."}
+            
+    except Exception as e:
+        return {"status": "error", "msg": str(e)}
+
+@eel.expose
+def check_vm_exists():
+    """ตรวจสอบว่า VM มีอยู่แล้วหรือยัง"""
+    vbox = get_virtualbox_path()
+    try:
+        if IS_WINDOWS:
+            result = subprocess.run([vbox, "list", "vms"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            result = subprocess.run([vbox, "list", "vms"], capture_output=True, text=True)
+        
+        if VM_NAME in result.stdout:
+            return {"exists": True}
+        return {"exists": False}
+    except Exception as e:
+        return {"exists": False, "error": str(e)}
+
+@eel.expose
+def check_ova_exists():
+    """ตรวจสอบว่าไฟล์ OVA มีอยู่หรือยัง"""
+    return {"exists": os.path.exists(OVA_FILE)}
+
+@eel.expose
+def get_credentials():
+    """คืนค่า credentials สำหรับ VM และ Wazuh Dashboard"""
+    return {
+        "vm": {"user": VM_USER, "pass": VM_PASS},
+        "wazuh": {"user": WAZUH_USER, "pass": WAZUH_PASS}
+    }
 
 if __name__ == '__main__':
     # DPI Scaling for Windows
