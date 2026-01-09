@@ -160,10 +160,13 @@ export default class StepWizard {
     render() {
         const stepContent = this.getStepContent();
 
+        const showBack = this.currentStep > 2; // Show back from step 3+
+        const showNext = this.currentStep >= 3 && this.currentStep < this.totalSteps; // Show next from step 3 to 4
+        
         this.container.innerHTML = `
         <div class="flex flex-col h-full">
             <!-- Progress Indicator -->
-            <div class="mb-6">
+            <div class="mb-4">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs text-slate-400 font-medium">ขั้นตอน ${this.currentStep} / ${this.totalSteps}</span>
                     <span class="text-xs text-sky-400">${this.getStepTitle()}</span>
@@ -175,8 +178,26 @@ export default class StepWizard {
             </div>
 
             <!-- Step Content -->
-            <div class="flex-1 flex flex-col justify-center">
+            <div class="flex-1 flex flex-col justify-center overflow-y-auto">
                 ${stepContent}
+            </div>
+
+            <!-- Navigation Footer -->
+            <div class="pt-3 mt-auto border-t border-slate-800/50">
+                <div class="flex justify-end gap-2">
+                    ${showBack ? `
+                        <button id="btn-nav-back"
+                            class="px-4 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 text-sm border border-slate-700/50 font-medium transition-all active:scale-[0.98]">
+                            ← ย้อนกลับ
+                        </button>
+                    ` : ''}
+                    ${showNext ? `
+                        <button id="btn-nav-next"
+                            class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium transition-all active:scale-[0.98]">
+                            ถัดไป →
+                        </button>
+                    ` : ''}
+                </div>
             </div>
 
             <!-- Loading Overlay -->
@@ -335,10 +356,12 @@ export default class StepWizard {
                     Stop
                 </button>
             </div>
+
             <button id="btn-next-step3"
                 class="w-full p-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-medium transition-all active:scale-[0.98]">
                 ถัดไป
             </button>
+
         </div>
         `;
     }
@@ -389,6 +412,7 @@ export default class StepWizard {
                     ถัดไป
                 </button>
             </div>
+
         </div>
         `;
     }
@@ -466,6 +490,7 @@ export default class StepWizard {
                 class="w-full p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 border border-slate-700/50 font-medium transition-all active:scale-[0.98] text-sm">
                 ย้อนกลับ
             </button>
+
         </div>
         `;
     }
@@ -568,28 +593,18 @@ export default class StepWizard {
             });
         }
 
-        const btnNextStep3 = this.container.querySelector('#btn-next-step3');
-        if (btnNextStep3) {
-            btnNextStep3.addEventListener('click', () => this.goNext());
+        // Footer Navigation Buttons
+        const btnNavBack = this.container.querySelector('#btn-nav-back');
+        if (btnNavBack) {
+            btnNavBack.addEventListener('click', () => this.goBack());
         }
 
-        // Step 4 - VM Credentials
-        const btnBackStep4 = this.container.querySelector('#btn-back-step4');
-        if (btnBackStep4) {
-            btnBackStep4.addEventListener('click', () => this.goBack());
-        }
-
-        const btnNextStep4 = this.container.querySelector('#btn-next-step4');
-        if (btnNextStep4) {
-            btnNextStep4.addEventListener('click', () => this.goNext());
+        const btnNavNext = this.container.querySelector('#btn-nav-next');
+        if (btnNavNext) {
+            btnNavNext.addEventListener('click', () => this.goNext());
         }
 
         // Step 5 - Dashboard
-        const btnBackStep5 = this.container.querySelector('#btn-back-step5');
-        if (btnBackStep5) {
-            btnBackStep5.addEventListener('click', () => this.goBack());
-        }
-
         const btnOpenDashboard = this.container.querySelector('#btn-open-dashboard');
         if (btnOpenDashboard) {
             btnOpenDashboard.addEventListener('click', () => {
