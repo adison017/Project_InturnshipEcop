@@ -92,6 +92,28 @@ def stop_vm():
     except:
         return {"status": "error", "msg": "สั่งปิดไม่ได้"}
 
-# เริ่มรันโปรแกรม (เปิดหน้าต่างขนาด 500x600)
+# เริ่มรันโปรแกรม (เปิดหน้าต่างขนาด 900x550 กึ่งกลางจอ)
 if __name__ == '__main__':
-    eel.start('index.html', size=(500, 650))
+    try:
+        # พยายามปรับ DPI Awareness เพื่อให้ได้ค่าความละเอียดหน้าจอที่ถูกต้อง (แก้ปัญหาจอ Scale 125%, 150%)
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except:
+            pass
+
+        user32 = ctypes.windll.user32
+        screen_width = user32.GetSystemMetrics(0)
+        screen_height = user32.GetSystemMetrics(1)
+        
+        window_width = 900
+        window_height = 550
+        
+        # คำนวณตำแหน่งกึ่งกลาง
+        center_x = int((screen_width - window_width) / 2)
+        center_y = int((screen_height - window_height) / 2)
+        
+        eel.start('index.html', size=(window_width, window_height), position=(center_x, center_y))
+    except Exception as e:
+        # Fallback ถ้ามีปัญหา
+        print(f"Error setting position: {e}")
+        eel.start('index.html', size=(900, 550))
