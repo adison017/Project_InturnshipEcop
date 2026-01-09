@@ -90,6 +90,12 @@ export default class StepWizard {
     }
 
     goBack() {
+        // Prevent going back from Step 3 (VM Control) to Step 2 (Install)
+        if (this.currentStep === 3) {
+            this.log("ไม่สามารถย้อนกลับหลังจากเริ่มควบคุม VM แล้ว", "warning");
+            return;
+        }
+
         if (this.currentStep > 1) {
             this.stopIpPolling();
             this.currentStep--;
@@ -160,7 +166,8 @@ export default class StepWizard {
     render() {
         const stepContent = this.getStepContent();
 
-        const showBack = this.currentStep > 2; // Show back from step 3+
+        // Show back button if step > 1, BUT hide it on step 3 (Start/Stop VM)
+        const showBack = this.currentStep > 1 && this.currentStep !== 3;
         const showNext = this.currentStep >= 3 && this.currentStep < this.totalSteps; // Show next from step 3 to 4
 
         this.container.innerHTML = `
@@ -413,70 +420,89 @@ export default class StepWizard {
         const hasIp = this.wazuhIp && this.ipFound;
 
         return `
-        <div class="text-center space-y-4">
-            <div class="w-14 h-14 mx-auto bg-sky-500/10 rounded-2xl flex items-center justify-center">
-                <span class="text-2xl">🌐</span>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold text-white mb-1">Wazuh Dashboard</h3>
-                <p class="text-slate-400 text-xs">เปิดหน้า Dashboard และใช้ข้อมูลด้านล่างเข้าสู่ระบบ</p>
+        <div class="flex flex-col h-full justify-between py-2">
+            <!-- Header Section -->
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 mx-auto bg-gradient-to-tr from-sky-500/20 to-blue-600/20 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-900/20 ring-1 ring-white/10">
+                    <span class="text-2xl drop-shadow-md">🌐</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white tracking-wide">Wazuh Dashboard</h3>
+                    <p class="text-slate-400 text-xs">ระบบพร้อมใช้งานแล้ว</p>
+                </div>
             </div>
 
-            <div id="dashboard-ip-section" class="space-y-2">
-                <!-- IP Status -->
-                <div id="ip-status" class="text-xs py-2">
+            <!-- Main Action Section -->
+            <div id="dashboard-ip-section" class="flex-1 flex flex-col justify-center space-y-3 px-1">
+                <!-- IP Status Indicator -->
+                <div class="flex items-center justify-center space-x-2 text-xs bg-slate-900/50 py-1.5 rounded-lg border border-white/5">
                     ${hasIp
-                ? `<span class="text-emerald-400">✔ พบ IP: ${this.wazuhIp}</span>`
-                : `<span class="text-amber-400 flex items-center justify-center">
-                            <span class="inline-block w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mr-2"></span>
-                            กำลังค้นหา IP จาก VM...
-                           </span>`
+                ? `<div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                           <span class="text-emerald-400 font-medium">System Online: ${this.wazuhIp}</span>`
+                : `<div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                           <span class="text-amber-400 font-medium">กำลังเชื่อมต่อกับ VM...</span>`
             }
                 </div>
                 
-                <!-- IP Input -->
-                <input type="text" id="wazuh-ip-input" 
-                    placeholder="กำลังค้นหา IP อัตโนมัติ..." 
-                    value="${hasIp ? this.wazuhIp : ''}"
-                    class="w-full p-3 rounded-xl bg-slate-800/50 border ${hasIp ? 'border-emerald-500/50 bg-emerald-900/20' : 'border-slate-700/50'} text-center text-sky-300 font-mono placeholder:text-slate-500 focus:outline-none focus:border-sky-500/50">
-                
-                <!-- Open Dashboard Button -->
+                <!-- Main Button -->
                 <button id="btn-open-dashboard"
                     ${!hasIp ? 'disabled' : ''}
-                    class="w-full p-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-blue-900/30 transition-all active:scale-[0.98] ${!hasIp ? 'opacity-50 cursor-not-allowed' : ''}">
-                    เปิด Dashboard
+                    class="group relative w-full p-4 rounded-xl font-bold text-white shadow-xl transition-all duration-300
+                    ${hasIp
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/25 hover:-translate-y-0.5'
+                : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border border-white/5'
+            }">
+                    <div class="flex items-center justify-center space-x-2">
+                        <span>OPEN DASHBOARD</span>
+                        <span class="group-hover:translate-x-1 transition-transform">→</span>
+                    </div>
                 </button>
                 
                 <!-- Manual refresh -->
-                <button id="btn-refresh-ip" class="text-xs text-sky-400 hover:text-sky-300 transition-colors">
-                    ค้นหา IP อีกครั้ง
-                </button>
+                <div class="text-center">
+                    <button id="btn-refresh-ip" class="text-[10px] text-slate-500 hover:text-sky-400 transition-colors uppercase tracking-wider flex items-center justify-center gap-1 mx-auto">
+                        <span>🔄</span> ค้นหา IP อีกครั้ง
+                    </button>
+                </div>
             </div>
             
-            <div class="space-y-2 text-left bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
-                <p class="text-xs text-slate-500 text-center mb-2">🔐 ข้อมูลเข้าสู่ระบบ Wazuh</p>
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-[10px] text-slate-500">Username</p>
-                        <p class="text-sm text-sky-400 font-mono font-semibold">${wazuhUser}</p>
-                    </div>
-                    <button class="copy-btn p-1.5 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-slate-400 hover:text-white transition-all text-xs" data-copy="${wazuhUser}">
-                        📋
-                    </button>
+            <!-- Default Credentials Card -->
+            <div class="bg-slate-800/40 backdrop-blur-sm rounded-xl p-3 border border-slate-700/30 overflow-hidden relative group">
+                <div class="absolute inset-0 bg-gradient-to-r from-sky-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                <div class="flex items-center space-x-2 mb-3">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Default Credentials</span>
+                    <div class="h-px flex-1 bg-slate-700/50"></div>
                 </div>
-                <div class="h-px bg-slate-700/50"></div>
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-[10px] text-slate-500">Password</p>
-                        <p class="text-sm text-emerald-400 font-mono font-semibold">${wazuhPass}</p>
+
+                <div class="grid grid-cols-2 gap-3 relative z-10">
+                    <!-- Username -->
+                    <div class="bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/30 hover:border-sky-500/30 transition-colors group/item">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[10px] text-slate-500 uppercase">Username</p>
+                                <p class="text-sm text-sky-400 font-mono font-bold mt-0.5">${wazuhUser}</p>
+                            </div>
+                            <button class="copy-btn opacity-0 group-hover/item:opacity-100 p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 transition-all" data-copy="${wazuhUser}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
                     </div>
-                    <button class="copy-btn p-1.5 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-slate-400 hover:text-white transition-all text-xs" data-copy="${wazuhPass}">
-                        📋
-                    </button>
+
+                    <!-- Password -->
+                    <div class="bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/30 hover:border-emerald-500/30 transition-colors group/item">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[10px] text-slate-500 uppercase">Password</p>
+                                <p class="text-sm text-emerald-400 font-mono font-bold mt-0.5">${wazuhPass}</p>
+                            </div>
+                            <button class="copy-btn opacity-0 group-hover/item:opacity-100 p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 transition-all" data-copy="${wazuhPass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-
         </div>
         `;
     }
