@@ -162,7 +162,7 @@ export default class StepWizard {
 
         const showBack = this.currentStep > 2; // Show back from step 3+
         const showNext = this.currentStep >= 3 && this.currentStep < this.totalSteps; // Show next from step 3 to 4
-        
+
         this.container.innerHTML = `
         <div class="flex flex-col h-full">
             <!-- Progress Indicator -->
@@ -357,10 +357,7 @@ export default class StepWizard {
                 </button>
             </div>
 
-            <button id="btn-next-step3"
-                class="w-full p-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-medium transition-all active:scale-[0.98]">
-                ถัดไป
-            </button>
+        
 
         </div>
         `;
@@ -403,14 +400,7 @@ export default class StepWizard {
             </div>
 
             <div class="grid grid-cols-2 gap-3">
-                <button id="btn-back-step4"
-                    class="p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 border border-slate-700/50 font-medium transition-all active:scale-[0.98]">
-                    ย้อนกลับ
-                </button>
-                <button id="btn-next-step4"
-                    class="p-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-medium transition-all active:scale-[0.98]">
-                    ถัดไป
-                </button>
+                
             </div>
 
         </div>
@@ -486,10 +476,6 @@ export default class StepWizard {
                 </div>
             </div>
 
-            <button id="btn-back-step5"
-                class="w-full p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 border border-slate-700/50 font-medium transition-all active:scale-[0.98] text-sm">
-                ย้อนกลับ
-            </button>
 
         </div>
         `;
