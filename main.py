@@ -237,13 +237,8 @@ def get_credentials():
     }
 
 if __name__ == '__main__':
-    # DPI Scaling for Windows
+    # Remove manual DPI awareness to ensure coordinates match EEL/Chrome expectations (Logical Pixels)
     if IS_WINDOWS:
-        try:
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
-        except:
-            pass
-        
         user32 = ctypes.windll.user32
         screen_width = user32.GetSystemMetrics(0)
         screen_height = user32.GetSystemMetrics(1)
@@ -252,9 +247,61 @@ if __name__ == '__main__':
         screen_width = 1920
         screen_height = 1080
 
+    # 1. Configuration: Fixed Size (Reduced size)
     window_width = 900
-    window_height = 550
+    window_height = 600
+    
+    # 2. Function: Center Window
     center_x = int((screen_width - window_width) / 2)
     center_y = int((screen_height - window_height) / 2)
     
-    eel.start('index.html', size=(window_width, window_height), position=(center_x, center_y))
+    print(f"Starting generic app window at {window_width}x{window_height} position ({center_x},{center_y})")
+    
+    # Start Eel (non-blocking)
+    eel.start('index.html', size=(window_width, window_height), position=(center_x, center_y), block=False)
+    
+    # 3. Technical: Remove Maximize/Resize on Windows
+    if IS_WINDOWS:
+        def lock_window_size():
+            try:
+                # Retry looking for window for up to 5 seconds
+                hwnd = None
+                for i in range(10):
+                    hwnd = ctypes.windll.user32.FindWindowW(None, "Wazuh Launcher")
+                    if hwnd:
+                        break
+                    time.sleep(0.5)
+                
+                if hwnd:
+                    # Constants
+                    GWL_STYLE = -16
+                    WS_MAXIMIZEBOX = 0x00010000
+                    WS_THICKFRAME = 0x00040000 
+                    
+                    # Apply style
+                    style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
+                    style = style & ~WS_MAXIMIZEBOX # Disable Maximize
+                    style = style & ~WS_THICKFRAME  # Disable Resize Sizing Border
+                    
+                    ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+                    
+                    # Force refresh window to apply styles AND FORCE POSITION/SIZE
+                    # flags: SWP_NOZORDER (0x0004) | SWP_FRAMECHANGED (0x0020) | SWP_SHOWWINDOW (0x0040)
+                    # We do NOT use SWP_NOMOVE or SWP_NOSIZE because we want to enforce them.
+                    ctypes.windll.user32.SetWindowPos(hwnd, 0, center_x, center_y, window_width, window_height, 0x0064)
+                    print(f"Window locked and moved to {center_x},{center_y} size {window_width}x{window_height}")
+                else:
+                    print("Could not find window to lock size.")
+            except Exception as e:
+                print(f"Error locking window: {e}")
+
+        # Run lock in a separate thread so it doesn't block if main thread is busy? 
+        # Actually we are in main block, eel is non-blocking. We can just call it.
+        import time
+        import threading
+        # Run in thread to not delay main loop entry
+        threading.Thread(target=lock_window_size, daemon=True).start()
+
+    # Main Loop
+    while True:
+        eel.sleep(1.0)
