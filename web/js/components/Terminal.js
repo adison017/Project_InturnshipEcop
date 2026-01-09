@@ -15,7 +15,7 @@ export default function Terminal() {
             </div>
         </div>
         <div id="status-box"
-            class="bg-black/40 border border-white/10 rounded-b-xl p-4 h-32 overflow-y-auto font-mono text-xs shadow-inner scroll-smooth backdrop-blur-sm">
+            class="bg-black/40 border border-white/10 rounded-b-xl p-4 h-32 overflow-y-auto font-['Silkscreen',_'Chakra_Petch',_monospace] font-medium text-xs shadow-inner scroll-smooth backdrop-blur-sm">
             <p id="status" class="text-emerald-400">> System initialized...</p>
             <p class="text-slate-500 mt-1">> Waiting for command...</p>
         </div>
