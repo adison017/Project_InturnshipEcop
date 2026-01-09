@@ -7,73 +7,15 @@
     <title>Wazuh Launcher</title>
     <link rel="icon" href="logo_transparent.png">
 
+    <!-- Libraries -->
     <script type="text/javascript" src="/eel.js"></script>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <link
         href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap"
         rel="stylesheet">
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Kanit', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        wazuh: {
-                            blue: '#0078d4',
-                            dark: '#1e293b',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        /* Animation เล็กน้อย */
-        @keyframes fade-in {
-            from {
-                opacity: 0;
-                transform: translateY(10px) scale(0.98);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .animate-enter {
-            animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        /* ปรับ Scrollbar ให้สวยงาม */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(30, 41, 59, 0.5);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 3px;
-        }
-        
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.65);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body
@@ -82,206 +24,56 @@
     <!-- Background Decoration -->
     <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
         <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]">
+        </div>
     </div>
 
-    <div
+    <!-- Main Container -->
+    <div id="app"
         class="animate-enter w-[96%] max-w-none h-[92%] glass-panel rounded-2xl p-6 grid grid-cols-2 gap-6 relative overflow-hidden">
-        
+
         <!-- Decorative Top Line -->
-        <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-sky-500/50 to-transparent"></div>
+        <div
+            class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-sky-500/50 to-transparent">
+        </div>
 
         <!-- LEFT COLUMN: Icon & Terminal -->
         <div class="flex flex-col justify-between space-y-6">
-            <div class="text-center flex-1 flex flex-col items-center justify-center">
-                <div class="relative group">
-                    <div class="absolute -inset-1 bg-gradient-to-r from-sky-500 to-indigo-500 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                    <div class="relative w-32 h-32 bg-black/40 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/10 shadow-2xl">
-                        <img src="logo_transparent.png" class="w-24 h-24 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" alt="Logo">
-                    </div>
-                </div>
-                
-                <h1 class="text-3xl font-bold tracking-tight mt-6 text-white text-shadow-sm">Wazuh <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">Launcher</span></h1>
-                <p class="text-slate-400 text-sm mt-2 font-light tracking-wide">Secure Endpoint Monitoring System</p>
-            </div>
-
-            <!-- Terminal -->
-            <div class="w-full">
-                <div class="flex items-center justify-between px-4 py-2 bg-black/60 rounded-t-xl border border-white/10 border-b-0 backdrop-blur-md">
-                    <span class="text-[10px] text-slate-400 font-mono tracking-wider flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3" />
-                        </svg>
-                        TERMINAL OUTPUT
-                    </span>
-                    <div class="flex space-x-1.5">
-                        <div class="w-2.5 h-2.5 rounded-full bg-red-500/80 shadow-sm"></div>
-                        <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/80 shadow-sm"></div>
-                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 shadow-sm"></div>
-                    </div>
-                </div>
-                <div id="status-box"
-                    class="bg-black/40 border border-white/10 rounded-b-xl p-4 h-32 overflow-y-auto font-mono text-xs shadow-inner scroll-smooth backdrop-blur-sm">
-                    <p id="status" class="text-emerald-400">> System initialized...</p>
-                    <p class="text-slate-500 mt-1">> Waiting for command...</p>
-                </div>
-            </div>
+            <div id="header-container"></div>
+            <div id="terminal-container"></div>
         </div>
 
         <!-- RIGHT COLUMN: Controls -->
-        <div class="flex flex-col justify-center space-y-4 bg-white/5 p-6 rounded-2xl border border-white/5 shadow-inner">
-            
-            <!-- OS Input -->
-            <div class="group">
-                <label class="text-xs text-slate-400 ml-1 font-medium mb-1 block">ระบบปฏิบัติการ (Operating System)</label>
-                <div class="relative">
-                    <input type="text" id="os_input" placeholder="เช่น Windows 11, Windows 10"
-                        class="w-full pl-4 pr-4 py-3 bg-black/20 border border-slate-700/50 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-sky-500/50 focus:ring-2 focus:ring-sky-500/20 transition-all placeholder:text-slate-600 shadow-sm hover:border-slate-600/50">
-                    <div class="absolute right-3 top-2.5 text-slate-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="h-px bg-slate-800/50 my-2"></div>
-
-            <button onclick="installVBox()"
-                class="group w-full relative overflow-hidden p-3.5 rounded-xl bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600/50 text-slate-200 shadow-lg hover:shadow-sky-900/10 hover:border-sky-500/30 transition-all active:scale-[0.98]">
-                <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div class="relative flex items-center justify-center">
-                    <span class="mr-3 text-lg opacity-80 group-hover:text-sky-400 transition-colors">💾</span>
-                    <span class="font-medium">0. ติดตั้ง VirtualBox (ถ้ายังไม่มี)</span>
-                </div>
-            </button>
-
-            <button onclick="checkSys()"
-                class="group w-full p-3.5 rounded-xl bg-slate-800/40 hover:bg-slate-700/40 text-slate-300 transition-all active:scale-[0.98] border border-slate-700/50 hover:border-slate-600">
-                <div class="flex items-center justify-center">
-                    <span class="mr-3 text-slate-500 group-hover:text-white transition-colors">🔍</span>
-                    <span>1. ตรวจสอบระบบ</span>
-                </div>
-            </button>
-
-            <button onclick="installVM()"
-                class="group w-full relative overflow-hidden p-3.5 rounded-xl bg-gradient-to-r from-orange-600/90 to-amber-600/90 hover:from-orange-500 hover:to-amber-500 text-white font-medium shadow-lg shadow-orange-900/20 transition-all active:scale-[0.98] border border-white/10">
-                <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
-                <div class="relative flex items-center justify-center">
-                    <span class="mr-3 group-hover:scale-110 transition-transform">📦</span>
-                    2. ติดตั้ง Wazuh (Install)
-                </div>
-            </button>
-
-            <div class="grid grid-cols-2 gap-3 pt-2">
-                <button onclick="startVM()"
-                    class="group relative overflow-hidden p-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium shadow-lg shadow-emerald-900/20 transition-all active:scale-[0.98] border border-white/10">
-                    <div class="flex items-center justify-center">
-                        <span class="mr-2 group-hover:translate-x-0.5 transition-transform">🚀</span>
-                        Start
-                    </div>
-                </button>
-
-                <button onclick="stopVM()"
-                    class="group relative overflow-hidden p-3.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-medium shadow-lg shadow-red-900/20 transition-all active:scale-[0.98] border border-white/10">
-                    <div class="flex items-center justify-center">
-                        <span class="mr-2 group-hover:rotate-90 transition-transform duration-300">🛑</span>
-                        Stop
-                    </div>
-                </button>
-            </div>
+        <div
+            class="flex flex-col justify-center space-y-4 bg-white/5 p-6 rounded-2xl border border-white/5 shadow-inner">
+            <div id="os-input-container"></div>
+            <div id="action-buttons-container"></div>
         </div>
 
-        <div class="absolute bottom-2 right-4 pointer-events-none">
-            <p class="text-[9px] text-slate-600/80 uppercase tracking-widest font-mono">By VirtualBox & Python</p>
-        </div>
+        <!-- Footer -->
+        <div id="footer-container"></div>
     </div>
 
-    <script>
-        // ฟังก์ชันช่วยเขียน Log ลงหน้าจอ Terminal แบบสวยๆ
-        function setStatus(msg, type = 'info') {
-            const el = document.getElementById('status');
-            const box = document.getElementById('status-box');
+    <!-- Application Logic -->
+    <script src="js/main.js"></script>
 
-            // สร้างบรรทัดใหม่
-            const p = document.createElement('div'); // Changed to div for better flex control if needed
-            p.className = 'mt-1.5 break-words flex items-start'; // Added spacing
-            
-            let colorClass = 'text-sky-300';
-            let prefix = '>';
+    <!-- Component Mounting -->
+    <script type="module">
+        import Header from './js/components/Header.js';
+        import Terminal from './js/components/Terminal.js';
+        import OSInput from './js/components/OSInput.js';
+        import ActionButtons from './js/components/ActionButtons.js';
+        import Footer from './js/components/Footer.js';
 
-            if (type === 'success') { colorClass = 'text-emerald-400'; prefix = '✔'; }
-            else if (type === 'error') { colorClass = 'text-red-400'; prefix = '✖'; }
-            else if (type === 'warning') { colorClass = 'text-amber-400'; prefix = '⚠'; }
-
-            p.innerHTML = `<span class="mr-2 opacity-50 select-none">${prefix}</span><span class="${colorClass}">${msg}</span>`;
-
-            // เพิ่มลงในกล่องและเลื่อนลงล่างสุด
-            box.appendChild(p);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        async function checkSys() {
-            setStatus("กำลังตรวจสอบระบบ...", "warning");
-            try {
-                let res = await eel.check_system()();
-                setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
-            } catch (e) {
-                setStatus("Error: เชื่อมต่อ Python ไม่ได้", "error");
-            }
-        }
-
-        async function installVM() {
-            if (!confirm("ยืนยันการติดตั้ง? (อาจใช้เวลา 5-10 นาที)")) return;
-            setStatus("เริ่มกระบวนการติดตั้ง...", "warning");
-            setStatus("กรุณารอสักครู่ ห้ามปิดโปรแกรม...", "info");
-
-            try {
-                let res = await eel.install_vm()();
-                setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
-            } catch (e) {
-                setStatus("เกิดข้อผิดพลาดในการติดตั้ง", "error");
-            }
-        }
-
-        async function startVM() {
-            setStatus("กำลังสั่งเปิดเครื่อง...", "warning");
-            try {
-                let res = await eel.start_vm()();
-                setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
-            } catch (e) {
-                setStatus("สั่ง Start ไม่สำเร็จ", "error");
-            }
-        }
-
-        async function stopVM() {
-            if (!confirm("ต้องการปิดเครื่อง Wazuh ใช่ไหม?")) return;
-            setStatus("ส่งคำสั่งปิดเครื่อง...", "warning");
-            try {
-                let res = await eel.stop_vm()();
-                setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
-            } catch (e) {
-                setStatus("สั่ง Stop ไม่สำเร็จ", "error");
-            }
-        }
-
-        async function installVBox() {
-            let osVal = document.getElementById('os_input').value;
-            if (!osVal) {
-                alert("กรุณากรอกระบบปฏิบัติการก่อน (Please enter OS)");
-                document.getElementById('os_input').focus();
-                return;
-            }
-
-            setStatus("กำลังดาวน์โหลดและติดตั้ง VirtualBox... (ใช้เวลาสักพัก)", "warning");
-            try {
-                let res = await eel.install_virtualbox(osVal)();
-                setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
-            } catch (e) {
-                setStatus("ติดตั้ง VirtualBox ไม่สำเร็จ", "error");
-            }
-        }
+        // Mount Components
+        document.getElementById('header-container').innerHTML = Header();
+        document.getElementById('terminal-container').innerHTML = Terminal();
+        document.getElementById('os-input-container').innerHTML = OSInput();
+        document.getElementById('action-buttons-container').innerHTML = ActionButtons();
+        document.getElementById('footer-container').innerHTML = Footer();
     </script>
+
+
 </body>
 
 </html>
