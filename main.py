@@ -20,10 +20,10 @@ VBOX_INSTALLER_URL = "https://download.virtualbox.org/virtualbox/7.2.4/VirtualBo
 VBOX_INSTALLER_NAME = "VirtualBox-Setup.exe"
 
 # Credentials
-VM_USER = "wazuh-user"
-VM_PASS = "wazuh"
+VM_USER = "adison"
+VM_PASS = "132547"
 WAZUH_USER = "admin"
-WAZUH_PASS = "SecretPassword"
+WAZUH_PASS = "admin"
 
 # Initialize Eel
 eel.init('web')
@@ -208,6 +208,57 @@ def get_wazuh_ip():
         return {"status": "error", "msg": str(e)}
 
 @eel.expose
+def check_vm_running():
+    vbox = get_virtualbox_path()
+    try:
+        if IS_WINDOWS:
+            result = subprocess.run([vbox, "list", "runningvms"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            result = subprocess.run([vbox, "list", "runningvms"], capture_output=True, text=True)
+            
+        if VM_NAME in result.stdout:
+            return True
+        return False
+    except:
+        return False
+
+@eel.expose
+def check_vm_logged_in():
+    """ตรวจสอบว่ามีการล็อกอินใน VM แล้วหรือยัง"""
+    vbox = get_virtualbox_path()
+    try:
+        # 1. Check LoggedInUsers (Count)
+        cmd_count = [vbox, "guestproperty", "get", VM_NAME, "/VirtualBox/GuestInfo/OS/LoggedInUsers"]
+        
+        # Helper to run command
+        def run_vbox_cmd(c):
+            if IS_WINDOWS:
+                return subprocess.run(c, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            else:
+                return subprocess.run(c, capture_output=True, text=True)
+
+        res_count = run_vbox_cmd(cmd_count).stdout.strip()
+        if "Value:" in res_count:
+            try:
+                if int(res_count.split("Value:")[1].strip()) > 0:
+                    return True
+            except:
+                pass
+        
+        # 2. Check LoggedInUsersList (Names) - Fallback
+        cmd_list = [vbox, "guestproperty", "get", VM_NAME, "/VirtualBox/GuestInfo/OS/LoggedInUsersList"]
+        res_list = run_vbox_cmd(cmd_list).stdout.strip()
+        if "Value:" in res_list:
+            user_list = res_list.split("Value:")[1].strip()
+            if user_list: # If string is not empty
+                return True
+
+        return False
+    except Exception as e:
+        print(f"Login check error: {e}")
+        return False
+
+@eel.expose
 def check_vm_exists():
     """ตรวจสอบว่า VM มีอยู่แล้วหรือยัง"""
     vbox = get_virtualbox_path()
@@ -236,6 +287,48 @@ def get_credentials():
         "wazuh": {"user": WAZUH_USER, "pass": WAZUH_PASS}
     }
 
+@eel.expose
+def reset_window_size():
+    """Resets the window size and centers it (Windows only)"""
+    if IS_WINDOWS:
+        try:
+            # Re-calculate center
+            user32 = ctypes.windll.user32
+            screen_width = user32.GetSystemMetrics(0)
+            screen_height = user32.GetSystemMetrics(1)
+            
+            window_width = 900
+            window_height = 610
+            
+            center_x = int((screen_width - window_width) / 2)
+            center_y = int((screen_height - window_height) / 2)
+
+            # Retry looking for window
+            hwnd = None
+            for i in range(10): # Try for a bit if called early
+                hwnd = ctypes.windll.user32.FindWindowW(None, "Wazuh Launcher")
+                if hwnd:
+                    break
+                time.sleep(0.1)
+                
+            if hwnd:
+                # Constants
+                GWL_STYLE = -16
+                WS_MAXIMIZEBOX = 0x00010000
+                WS_THICKFRAME = 0x00040000 
+                
+                # Apply style
+                style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
+                style = style & ~WS_MAXIMIZEBOX # Disable Maximize
+                style = style & ~WS_THICKFRAME  # Disable Resize Sizing Border
+                
+                ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+                
+                # Force refresh window to apply styles AND FORCE POSITION/SIZE
+                ctypes.windll.user32.SetWindowPos(hwnd, 0, center_x, center_y, window_width, window_height, 0x0064)
+        except Exception as e:
+            print(f"Error resetting window: {e}")
+
 if __name__ == '__main__':
     # Remove manual DPI awareness to ensure coordinates match EEL/Chrome expectations (Logical Pixels)
     if IS_WINDOWS:
@@ -249,7 +342,7 @@ if __name__ == '__main__':
 
     # 1. Configuration: Fixed Size (Reduced size)
     window_width = 900
-    window_height = 600
+    window_height = 610
     
     # 2. Function: Center Window
     center_x = int((screen_width - window_width) / 2)
@@ -262,45 +355,11 @@ if __name__ == '__main__':
     
     # 3. Technical: Remove Maximize/Resize on Windows
     if IS_WINDOWS:
-        def lock_window_size():
-            try:
-                # Retry looking for window for up to 5 seconds
-                hwnd = None
-                for i in range(10):
-                    hwnd = ctypes.windll.user32.FindWindowW(None, "Wazuh Launcher")
-                    if hwnd:
-                        break
-                    time.sleep(0.5)
-                
-                if hwnd:
-                    # Constants
-                    GWL_STYLE = -16
-                    WS_MAXIMIZEBOX = 0x00010000
-                    WS_THICKFRAME = 0x00040000 
-                    
-                    # Apply style
-                    style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
-                    style = style & ~WS_MAXIMIZEBOX # Disable Maximize
-                    style = style & ~WS_THICKFRAME  # Disable Resize Sizing Border
-                    
-                    ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, style)
-                    
-                    # Force refresh window to apply styles AND FORCE POSITION/SIZE
-                    # flags: SWP_NOZORDER (0x0004) | SWP_FRAMECHANGED (0x0020) | SWP_SHOWWINDOW (0x0040)
-                    # We do NOT use SWP_NOMOVE or SWP_NOSIZE because we want to enforce them.
-                    ctypes.windll.user32.SetWindowPos(hwnd, 0, center_x, center_y, window_width, window_height, 0x0064)
-                    print(f"Window locked and moved to {center_x},{center_y} size {window_width}x{window_height}")
-                else:
-                    print("Could not find window to lock size.")
-            except Exception as e:
-                print(f"Error locking window: {e}")
-
-        # Run lock in a separate thread so it doesn't block if main thread is busy? 
-        # Actually we are in main block, eel is non-blocking. We can just call it.
         import time
         import threading
+        
         # Run in thread to not delay main loop entry
-        threading.Thread(target=lock_window_size, daemon=True).start()
+        threading.Thread(target=reset_window_size, daemon=True).start()
 
     # Main Loop
     while True:
