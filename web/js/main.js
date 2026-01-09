@@ -1,3 +1,5 @@
+import Notification from './components/Notification.js';
+
 // Tailwind Configuration
 tailwind.config = {
     theme: {
@@ -81,7 +83,7 @@ const App = {
     },
 
     installVM: async () => {
-        if (!confirm("ยืนยันการติดตั้ง? (อาจใช้เวลา 5-10 นาที)")) return;
+        if (!await Notification.confirm("ยืนยันการติดตั้ง? (อาจใช้เวลา 5-10 นาที)", "Installation Confirmation")) return;
         UI.setStatus("เริ่มกระบวนการติดตั้ง...", "warning");
         UI.setStatus("กรุณารอสักครู่ ห้ามปิดโปรแกรม...", "info");
 
@@ -106,7 +108,7 @@ const App = {
     },
 
     stopVM: async () => {
-        if (!confirm("ต้องการปิดเครื่อง Wazuh ใช่ไหม?")) return;
+        if (!await Notification.confirm("ต้องการปิดเครื่อง Wazuh ใช่ไหม?", "Stop System")) return;
         UI.setStatus("ส่งคำสั่งปิดเครื่อง...", "warning");
         try {
             let res = await eel.stop_vm()();
