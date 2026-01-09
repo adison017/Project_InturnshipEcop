@@ -1,79 +1,87 @@
 <!DOCTYPE html>
 <html lang="th">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Wazuh Launcher</title>
-    <link rel="icon" href="logo_transparent.png">
+    <link rel="icon" href="logo_transparent.png" />
 
     <!-- Libraries -->
     <script type="text/javascript" src="/eel.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
-        href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&family=Pixelify+Sans:wght@400..700&family=Silkscreen:wght@400;700&display=swap"
-        rel="stylesheet">
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&family=Pixelify+Sans:wght@400..700&family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/styles.css">
-</head>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
 
-<body
-    class="bg-slate-950 text-white h-screen flex items-center justify-center selection:bg-sky-500 selection:text-white overflow-hidden relative">
-
+  <body
+    class="bg-slate-950 text-white h-screen flex items-center justify-center selection:bg-sky-500 selection:text-white overflow-hidden relative"
+  >
     <!-- Background Decoration -->
-    <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]">
-        </div>
+    <div
+      class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none"
+    >
+      <div
+        class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]"
+      ></div>
+      <div
+        class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]"
+      ></div>
     </div>
 
     <!-- Main Container -->
-    <div id="app"
-        class="animate-enter w-[96%] max-w-none h-[92%] glass-panel rounded-2xl p-6 grid grid-cols-2 gap-6 relative overflow-hidden">
+    <div
+      id="app"
+      class="animate-enter w-[96%] max-w-none h-[92%] glass-panel rounded-2xl p-6 grid grid-cols-2 gap-6 relative overflow-hidden"
+    >
+      <!-- Decorative Top Line -->
+      <div
+        class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-sky-500/50 to-transparent"
+      ></div>
 
-        <!-- Decorative Top Line -->
-        <div
-            class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-sky-500/50 to-transparent">
-        </div>
+      <!-- LEFT COLUMN: Logo, Terminal & Status -->
+      <div class="flex flex-col justify-between space-y-4">
+        <!-- Header -->
+        <div id="header-container"></div>
 
-        <!-- LEFT COLUMN: Icon & Terminal -->
-        <div class="flex flex-col justify-between space-y-6">
-            <div id="header-container"></div>
-            <div id="terminal-container"></div>
-        </div>
+        <!-- Terminal -->
+        <div id="terminal-container" class="flex-1"></div>
+      </div>
 
-        <!-- RIGHT COLUMN: Controls -->
-        <div
-            class="flex flex-col justify-center space-y-4 bg-white/5 p-6 rounded-2xl border border-white/5 shadow-inner">
-            <div id="os-input-container"></div>
-            <div id="action-buttons-container"></div>
-        </div>
+      <!-- RIGHT COLUMN: Step Wizard -->
+      <div class="flex flex-col justify-between relative" id="wizard-container">
+        <!-- Wizard will be mounted here -->
+      </div>
 
-        <!-- Footer -->
-        <div id="footer-container"></div>
+      <!-- Footer -->
+      <div id="footer-container"></div>
     </div>
 
     <!-- Application Logic -->
-    <script src="js/main.js"></script>
+    <script type="module" src="js/main.js"></script>
 
     <!-- Component Mounting -->
     <script type="module">
-        import Header from './js/components/Header.js';
-        import Terminal from './js/components/Terminal.js';
-        import OSInput from './js/components/OSInput.js';
-        import ActionButtons from './js/components/ActionButtons.js';
-        import Footer from './js/components/Footer.js';
+      import Header from "./js/components/Header.js";
+      import Terminal from "./js/components/Terminal.js";
+      import Footer from "./js/components/Footer.js";
+      import StepWizard from "./js/components/StepWizard.js";
 
-        // Mount Components
-        document.getElementById('header-container').innerHTML = Header();
-        document.getElementById('terminal-container').innerHTML = Terminal();
-        document.getElementById('os-input-container').innerHTML = OSInput();
-        document.getElementById('action-buttons-container').innerHTML = ActionButtons();
-        document.getElementById('footer-container').innerHTML = Footer();
+      // Mount Static Components
+      document.getElementById("header-container").innerHTML = Header();
+      document.getElementById("terminal-container").innerHTML = Terminal();
+      document.getElementById("footer-container").innerHTML = Footer();
+
+      // Initialize Wizard after a short delay for Eel to be ready
+      setTimeout(() => {
+        const wizard = new StepWizard("wizard-container");
+        wizard.init();
+        window.wizard = wizard; // Expose globally for debugging
+      }, 600);
     </script>
-
-
-</body>
-
+  </body>
 </html>

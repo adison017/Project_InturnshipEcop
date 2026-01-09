@@ -19,6 +19,12 @@ VBOX_PATH_WIN = r"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 VBOX_INSTALLER_URL = "https://download.virtualbox.org/virtualbox/7.2.4/VirtualBox-7.2.4-170995-Win.exe"
 VBOX_INSTALLER_NAME = "VirtualBox-Setup.exe"
 
+# Credentials
+VM_USER = "wazuh-user"
+VM_PASS = "wazuh"
+WAZUH_USER = "admin"
+WAZUH_PASS = "SecretPassword"
+
 # Initialize Eel
 eel.init('web')
 
@@ -174,14 +180,65 @@ def stop_vm():
     except:
         return {"status": "error", "msg": "สั่งปิดไม่ได้"}
 
-if __name__ == '__main__':
-    # DPI Scaling for Windows
-    if IS_WINDOWS:
-        try:
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
-        except:
-            pass
+@eel.expose
+def get_wazuh_ip():
+    try:
+        vbox = get_virtualbox_path()
+        # คำสั่งถาม IP จาก Guest Utilities ใน VM
+        # /VirtualBox/GuestInfo/Net/0/V4/IP คือ Key มาตรฐานสำหรับ IP Address แรก
+        cmd = [vbox, "guestproperty", "get", VM_NAME, "/VirtualBox/GuestInfo/Net/0/V4/IP"]
         
+        # รันคำสั่งแบบซ่อนหน้าต่าง
+        if IS_WINDOWS:
+            result = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+        output = result.stdout.strip()
+
+        # ผลลัพธ์ที่ได้จะเป็น format: "Value: 192.168.1.xxx" หรือ "No value set!"
+        if "Value:" in output:
+            # ตัดเอาเฉพาะตัวเลข IP
+            ip_address = output.split("Value:")[1].strip()
+            return {"status": "success", "ip": ip_address}
+        else:
+            return {"status": "pending", "msg": "กำลังรอ IP..."}
+            
+    except Exception as e:
+        return {"status": "error", "msg": str(e)}
+
+@eel.expose
+def check_vm_exists():
+    """ตรวจสอบว่า VM มีอยู่แล้วหรือยัง"""
+    vbox = get_virtualbox_path()
+    try:
+        if IS_WINDOWS:
+            result = subprocess.run([vbox, "list", "vms"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            result = subprocess.run([vbox, "list", "vms"], capture_output=True, text=True)
+        
+        if VM_NAME in result.stdout:
+            return {"exists": True}
+        return {"exists": False}
+    except Exception as e:
+        return {"exists": False, "error": str(e)}
+
+@eel.expose
+def check_ova_exists():
+    """ตรวจสอบว่าไฟล์ OVA มีอยู่หรือยัง"""
+    return {"exists": os.path.exists(OVA_FILE)}
+
+@eel.expose
+def get_credentials():
+    """คืนค่า credentials สำหรับ VM และ Wazuh Dashboard"""
+    return {
+        "vm": {"user": VM_USER, "pass": VM_PASS},
+        "wazuh": {"user": WAZUH_USER, "pass": WAZUH_PASS}
+    }
+
+if __name__ == '__main__':
+    # Remove manual DPI awareness to ensure coordinates match EEL/Chrome expectations (Logical Pixels)
+    if IS_WINDOWS:
         user32 = ctypes.windll.user32
         screen_width = user32.GetSystemMetrics(0)
         screen_height = user32.GetSystemMetrics(1)
@@ -190,9 +247,61 @@ if __name__ == '__main__':
         screen_width = 1920
         screen_height = 1080
 
+    # 1. Configuration: Fixed Size (Reduced size)
     window_width = 900
-    window_height = 550
+    window_height = 600
+    
+    # 2. Function: Center Window
     center_x = int((screen_width - window_width) / 2)
     center_y = int((screen_height - window_height) / 2)
     
-    eel.start('index.html', size=(window_width, window_height), position=(center_x, center_y))
+    print(f"Starting generic app window at {window_width}x{window_height} position ({center_x},{center_y})")
+    
+    # Start Eel (non-blocking)
+    eel.start('index.html', size=(window_width, window_height), position=(center_x, center_y), block=False)
+    
+    # 3. Technical: Remove Maximize/Resize on Windows
+    if IS_WINDOWS:
+        def lock_window_size():
+            try:
+                # Retry looking for window for up to 5 seconds
+                hwnd = None
+                for i in range(10):
+                    hwnd = ctypes.windll.user32.FindWindowW(None, "Wazuh Launcher")
+                    if hwnd:
+                        break
+                    time.sleep(0.5)
+                
+                if hwnd:
+                    # Constants
+                    GWL_STYLE = -16
+                    WS_MAXIMIZEBOX = 0x00010000
+                    WS_THICKFRAME = 0x00040000 
+                    
+                    # Apply style
+                    style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
+                    style = style & ~WS_MAXIMIZEBOX # Disable Maximize
+                    style = style & ~WS_THICKFRAME  # Disable Resize Sizing Border
+                    
+                    ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+                    
+                    # Force refresh window to apply styles AND FORCE POSITION/SIZE
+                    # flags: SWP_NOZORDER (0x0004) | SWP_FRAMECHANGED (0x0020) | SWP_SHOWWINDOW (0x0040)
+                    # We do NOT use SWP_NOMOVE or SWP_NOSIZE because we want to enforce them.
+                    ctypes.windll.user32.SetWindowPos(hwnd, 0, center_x, center_y, window_width, window_height, 0x0064)
+                    print(f"Window locked and moved to {center_x},{center_y} size {window_width}x{window_height}")
+                else:
+                    print("Could not find window to lock size.")
+            except Exception as e:
+                print(f"Error locking window: {e}")
+
+        # Run lock in a separate thread so it doesn't block if main thread is busy? 
+        # Actually we are in main block, eel is non-blocking. We can just call it.
+        import time
+        import threading
+        # Run in thread to not delay main loop entry
+        threading.Thread(target=lock_window_size, daemon=True).start()
+
+    # Main Loop
+    while True:
+        eel.sleep(1.0)
