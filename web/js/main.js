@@ -39,11 +39,36 @@ const UI = {
 
         box.appendChild(p);
         box.scrollTop = box.scrollHeight;
+    },
+
+    setOS: (osName, osDetail) => {
+        const input = document.getElementById('os_input');
+        const icon = document.getElementById('os_icon');
+        if (input) {
+            input.value = `${osName}`; // Show main OS name
+            // Optional: Tooltip with detail
+            input.title = `Detailed: ${osDetail}`;
+        }
+        if (icon) {
+            icon.classList.remove('animate-pulse');
+        }
     }
 };
 
 // Main Application Logic
 const App = {
+    init: async () => {
+        // Auto-detect OS on startup
+        try {
+            let res = await eel.get_os_info()();
+            UI.setStatus(`Detected Host OS: ${res.os} (${res.detail})`, 'info');
+            UI.setOS(res.os, res.detail);
+        } catch (e) {
+            UI.setStatus("Failed to detect OS", 'error');
+            console.error(e);
+        }
+    },
+
     checkSys: async () => {
         UI.setStatus("กำลังตรวจสอบระบบ...", "warning");
         try {
@@ -93,16 +118,10 @@ const App = {
     },
 
     installVBox: async () => {
-        let osVal = document.getElementById('os_input').value;
-        if (!osVal) {
-            alert("กรุณากรอกระบบปฏิบัติการก่อน (Please enter OS)");
-            document.getElementById('os_input').focus();
-            return;
-        }
-
-        UI.setStatus(`กำลังดาวน์โหลดและติดตั้ง VirtualBox สำหรับ ${osVal}... (อาจใช้เวลาสักพัก)`, "warning");
+        // No longer need to read input, backend handles it
+        UI.setStatus(`กำลังเตรียมติดตั้ง VirtualBox ตามระบบปฏิบัติการที่ตรวจพบ...`, "warning");
         try {
-            let res = await eel.install_virtualbox(osVal)();
+            let res = await eel.install_virtualbox()();
             UI.setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
         } catch (e) {
             UI.setStatus("ติดตั้ง VirtualBox ไม่สำเร็จ", "error");
@@ -120,3 +139,9 @@ window.startVM = App.startVM;
 window.stopVM = App.stopVM;
 window.installVBox = App.installVBox;
 window.setStatus = UI.setStatus;
+
+// Start init when loaded
+window.addEventListener('DOMContentLoaded', () => {
+    // Wait slightly for Eel to be ready
+    setTimeout(App.init, 500);
+});
