@@ -23,10 +23,6 @@ const UI = {
     setStatus: (msg, type = 'info') => {
         const box = document.getElementById('status-box');
 
-        // Remove initial placeholder if it exists (optional check)
-        // const initialMsg = box.querySelector('p');
-        // if(initialMsg && initialMsg.innerText === '> System initialized...') initialMsg.remove();
-
         const p = document.createElement('div');
         p.className = 'mt-1.5 break-words flex items-start animate-fade-in-fast';
 
@@ -56,6 +52,9 @@ const UI = {
         }
     }
 };
+
+// Global polling interval
+let ipInterval;
 
 // Main Application Logic
 const App = {
@@ -100,10 +99,61 @@ const App = {
         UI.setStatus("กำลังสั่งเปิดเครื่อง...", "warning");
         try {
             let res = await eel.start_vm()();
-            UI.setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
+
+            if (res.status === 'success') {
+                UI.setStatus(res.msg, 'success');
+                // เริ่มกระบวนการเช็ค IP
+                UI.setStatus("รอการเชื่อมต่อ Network...", "info");
+                // เช็ค IP ทุกๆ 3 วินาที
+                if (ipInterval) clearInterval(ipInterval); // เคลียร์ของเก่าก่อน (ถ้ามี)
+                ipInterval = setInterval(App.pollIP, 3000);
+            } else {
+                UI.setStatus(res.msg, 'error');
+            }
+
         } catch (e) {
             UI.setStatus("สั่ง Start ไม่สำเร็จ", "error");
             console.error(e);
+        }
+    },
+
+    pollIP: async () => {
+        try {
+            let res = await eel.get_wazuh_ip()();
+
+            if (res.status === 'success') {
+                const ip = res.ip;
+                App.dashboardUrl = `https://${ip}`;
+
+                const btn = document.getElementById('btn-dashboard');
+                const txt = document.getElementById('show-ip');
+
+                if (btn && txt) {
+                    // เปลี่ยนสถานะเป็น Active (สีฟ้า)
+                    btn.disabled = false;
+                    btn.className = "group w-full flex items-center justify-center p-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium shadow-lg shadow-blue-900/20 transition-all active:scale-95 mt-3";
+
+                    // อัปเดตข้อความและไอคอน
+                    txt.innerText = ip;
+                    const icon = btn.querySelector('span:first-child');
+                    if (icon) icon.classList.remove('grayscale', 'opacity-50');
+                }
+
+                UI.setStatus(`เชื่อมต่อสำเร็จ! IP: ${ip}`, "success");
+                UI.setStatus("คลิกปุ่มสีฟ้าด้านบนเพื่อเข้าใช้งาน", "success");
+
+                clearInterval(ipInterval);
+            }
+        } catch (e) {
+            console.log("Polling IP...", e);
+        }
+    },
+
+    openDashboard: () => {
+        if (App.dashboardUrl) {
+            window.open(App.dashboardUrl, '_blank');
+        } else {
+            UI.setStatus("ยังไม่ได้รับ IP Address", "warning");
         }
     },
 
@@ -113,6 +163,21 @@ const App = {
         try {
             let res = await eel.stop_vm()();
             UI.setStatus(res.msg, res.status === 'success' ? 'success' : 'error');
+
+            // Reset Dashboard Button to Disabled State
+            const btn = document.getElementById('btn-dashboard');
+            const txt = document.getElementById('show-ip');
+
+            if (btn) {
+                btn.disabled = true;
+                btn.className = "group w-full flex items-center justify-center p-3 rounded-xl bg-slate-800/50 text-slate-500 font-medium border border-slate-700/50 cursor-not-allowed transition-all mt-3";
+                const icon = btn.querySelector('span:first-child');
+                if (icon) icon.classList.add('grayscale', 'opacity-50');
+            }
+            if (txt) txt.innerText = "Waiting...";
+
+            if (ipInterval) clearInterval(ipInterval);
+
         } catch (e) {
             UI.setStatus("สั่ง Stop ไม่สำเร็จ", "error");
             console.error(e);
@@ -133,13 +198,12 @@ const App = {
 };
 
 // Expose functions to global scope for HTML inline calls (onclick)
-// Or better yet, we should attach event listeners in a init function, 
-// but to keep compatibility with existing HTML 'onclick' attributes:
 window.checkSys = App.checkSys;
 window.installVM = App.installVM;
 window.startVM = App.startVM;
 window.stopVM = App.stopVM;
 window.installVBox = App.installVBox;
+window.openDashboard = App.openDashboard;
 window.setStatus = UI.setStatus;
 
 // Start init when loaded

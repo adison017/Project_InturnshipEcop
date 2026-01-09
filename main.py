@@ -174,6 +174,33 @@ def stop_vm():
     except:
         return {"status": "error", "msg": "สั่งปิดไม่ได้"}
 
+@eel.expose
+def get_wazuh_ip():
+    try:
+        vbox = get_virtualbox_path()
+        # คำสั่งถาม IP จาก Guest Utilities ใน VM
+        # /VirtualBox/GuestInfo/Net/0/V4/IP คือ Key มาตรฐานสำหรับ IP Address แรก
+        cmd = [vbox, "guestproperty", "get", VM_NAME, "/VirtualBox/GuestInfo/Net/0/V4/IP"]
+        
+        # รันคำสั่งแบบซ่อนหน้าต่าง
+        if IS_WINDOWS:
+            result = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+        output = result.stdout.strip()
+
+        # ผลลัพธ์ที่ได้จะเป็น format: "Value: 192.168.1.xxx" หรือ "No value set!"
+        if "Value:" in output:
+            # ตัดเอาเฉพาะตัวเลข IP
+            ip_address = output.split("Value:")[1].strip()
+            return {"status": "success", "ip": ip_address}
+        else:
+            return {"status": "pending", "msg": "กำลังรอ IP..."}
+            
+    except Exception as e:
+        return {"status": "error", "msg": str(e)}
+
 if __name__ == '__main__':
     # DPI Scaling for Windows
     if IS_WINDOWS:

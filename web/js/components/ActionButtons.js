@@ -43,5 +43,11 @@ export default function ActionButtons() {
             </div>
         </button>
     </div>
+
+    <button id="btn-dashboard" onclick="openDashboard()" disabled
+        class="group w-full flex items-center justify-center p-3 rounded-xl bg-slate-800/50 text-slate-500 font-medium border border-slate-700/50 cursor-not-allowed transition-all mt-3">
+        <span class="mr-2 text-xl grayscale opacity-50">🌐</span> 
+        Open Dashboard (<span id="show-ip">Waiting...</span>)
+    </button>
     `;
 }
