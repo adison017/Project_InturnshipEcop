@@ -19,6 +19,12 @@ VBOX_PATH_WIN = r"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 VBOX_INSTALLER_URL = "https://download.virtualbox.org/virtualbox/7.2.4/VirtualBox-7.2.4-170995-Win.exe"
 VBOX_INSTALLER_NAME = "VirtualBox-Setup.exe"
 
+# Credentials
+VM_USER = "wazuh-user"
+VM_PASS = "wazuh"
+WAZUH_USER = "admin"
+WAZUH_PASS = "SecretPassword"
+
 # Initialize Eel
 eel.init('web')
 
@@ -200,6 +206,35 @@ def get_wazuh_ip():
             
     except Exception as e:
         return {"status": "error", "msg": str(e)}
+
+@eel.expose
+def check_vm_exists():
+    """ตรวจสอบว่า VM มีอยู่แล้วหรือยัง"""
+    vbox = get_virtualbox_path()
+    try:
+        if IS_WINDOWS:
+            result = subprocess.run([vbox, "list", "vms"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            result = subprocess.run([vbox, "list", "vms"], capture_output=True, text=True)
+        
+        if VM_NAME in result.stdout:
+            return {"exists": True}
+        return {"exists": False}
+    except Exception as e:
+        return {"exists": False, "error": str(e)}
+
+@eel.expose
+def check_ova_exists():
+    """ตรวจสอบว่าไฟล์ OVA มีอยู่หรือยัง"""
+    return {"exists": os.path.exists(OVA_FILE)}
+
+@eel.expose
+def get_credentials():
+    """คืนค่า credentials สำหรับ VM และ Wazuh Dashboard"""
+    return {
+        "vm": {"user": VM_USER, "pass": VM_PASS},
+        "wazuh": {"user": WAZUH_USER, "pass": WAZUH_PASS}
+    }
 
 if __name__ == '__main__':
     # DPI Scaling for Windows
