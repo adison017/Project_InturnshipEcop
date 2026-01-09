@@ -1,4 +1,6 @@
 // StepWizard Component - Step-by-step UI for Wazuh Launcher
+import Notification from './Notification.js';
+
 export default class StepWizard {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
@@ -11,7 +13,7 @@ export default class StepWizard {
         this.wazuhIp = null;
         this.ipInterval = null;
         this.ipFound = false;
-        
+
         // Bind methods
         this.render = this.render.bind(this);
         this.goNext = this.goNext.bind(this);
@@ -25,7 +27,7 @@ export default class StepWizard {
 
     async checkInitialState() {
         this.setLoading(true, "กำลังตรวจสอบระบบ...");
-        
+
         try {
             // Check VirtualBox first
             const sysCheck = await eel.check_system()();
@@ -98,7 +100,7 @@ export default class StepWizard {
     // IP Polling Methods
     startIpPolling() {
         if (this.ipInterval) return; // Already polling
-        
+
         this.log("กำลังค้นหา IP Address จาก VM...", "info");
         this.ipInterval = setInterval(() => this.pollIp(), 3000);
         this.pollIp(); // First poll immediately
@@ -114,12 +116,12 @@ export default class StepWizard {
     async pollIp() {
         try {
             const res = await eel.get_wazuh_ip()();
-            
+
             if (res.status === 'success' && res.ip) {
                 this.wazuhIp = res.ip;
                 this.ipFound = true;
                 this.stopIpPolling();
-                
+
                 // Update the input field
                 const ipInput = this.container.querySelector('#wazuh-ip-input');
                 if (ipInput) {
@@ -127,20 +129,20 @@ export default class StepWizard {
                     ipInput.classList.remove('border-slate-700/50');
                     ipInput.classList.add('border-emerald-500/50', 'bg-emerald-900/20');
                 }
-                
+
                 // Update status indicator
                 const statusEl = this.container.querySelector('#ip-status');
                 if (statusEl) {
                     statusEl.innerHTML = `<span class="text-emerald-400">✔ พบ IP: ${res.ip}</span>`;
                 }
-                
+
                 // Enable the button
                 const btnOpen = this.container.querySelector('#btn-open-dashboard');
                 if (btnOpen) {
                     btnOpen.disabled = false;
                     btnOpen.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
-                
+
                 this.log(`พบ IP Address: ${res.ip}`, 'success');
             }
         } catch (e) {
@@ -157,7 +159,7 @@ export default class StepWizard {
 
     render() {
         const stepContent = this.getStepContent();
-        
+
         this.container.innerHTML = `
         <div class="flex flex-col h-full">
             <!-- Progress Indicator -->
@@ -188,7 +190,7 @@ export default class StepWizard {
         `;
 
         this.attachEventListeners();
-        
+
         // Start IP polling when on Dashboard step (step 5)
         if (this.currentStep === 5 && !this.ipFound) {
             this.startIpPolling();
@@ -238,11 +240,11 @@ export default class StepWizard {
             </div>
             <button id="btn-install-vbox"
                 class="w-full p-4 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-semibold shadow-lg shadow-orange-900/30 transition-all active:scale-[0.98]">
-                💾 ติดตั้ง VirtualBox
+                ติดตั้ง VirtualBox
             </button>
             <button id="btn-recheck"
                 class="text-sm text-sky-400 hover:text-sky-300 transition-colors">
-                🔄 ตรวจสอบอีกครั้ง
+                ตรวจสอบอีกครั้ง
             </button>
         </div>
         `;
@@ -278,11 +280,11 @@ export default class StepWizard {
                 <div class="space-y-3">
                     <a href="https://drive.google.com/your-ova-link" target="_blank"
                         class="block w-full p-4 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-sky-900/30 transition-all active:scale-[0.98] text-center">
-                        📥 ดาวน์โหลด OVA
+                        ดาวน์โหลด OVA
                     </a>
                     <button id="btn-recheck-ova"
                         class="w-full p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 border border-slate-700/50 transition-all">
-                        🔄 ตรวจสอบอีกครั้ง
+                        ตรวจสอบอีกครั้ง
                     </button>
                 </div>
             </div>
@@ -301,11 +303,11 @@ export default class StepWizard {
                 <div class="space-y-3">
                     <button id="btn-install-vm"
                         class="w-full p-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold shadow-lg shadow-emerald-900/30 transition-all active:scale-[0.98]">
-                        📦 ติดตั้ง VM
+                        ติดตั้ง VM
                     </button>
                     <a href="https://drive.google.com/your-ova-link" target="_blank"
                         class="block w-full p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 border border-slate-700/50 transition-all text-center text-sm">
-                        📥 ดาวน์โหลด OVA ใหม่
+                        ดาวน์โหลด OVA ใหม่
                     </a>
                 </div>
             </div>
@@ -326,16 +328,16 @@ export default class StepWizard {
             <div class="grid grid-cols-2 gap-3">
                 <button id="btn-start-vm"
                     class="p-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold shadow-lg shadow-emerald-900/30 transition-all active:scale-[0.98]">
-                    🚀 Start
+                    Start
                 </button>
                 <button id="btn-stop-vm"
                     class="p-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold shadow-lg shadow-red-900/30 transition-all active:scale-[0.98]">
-                    🛑 Stop
+                    Stop
                 </button>
             </div>
             <button id="btn-next-step3"
                 class="w-full p-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-medium transition-all active:scale-[0.98]">
-                ถัดไป →
+                ถัดไป
             </button>
         </div>
         `;
@@ -380,11 +382,11 @@ export default class StepWizard {
             <div class="grid grid-cols-2 gap-3">
                 <button id="btn-back-step4"
                     class="p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 border border-slate-700/50 font-medium transition-all active:scale-[0.98]">
-                    ← ย้อนกลับ
+                    ย้อนกลับ
                 </button>
                 <button id="btn-next-step4"
                     class="p-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-medium transition-all active:scale-[0.98]">
-                    ถัดไป →
+                    ถัดไป
                 </button>
             </div>
         </div>
@@ -409,13 +411,13 @@ export default class StepWizard {
             <div id="dashboard-ip-section" class="space-y-2">
                 <!-- IP Status -->
                 <div id="ip-status" class="text-xs py-2">
-                    ${hasIp 
-                        ? `<span class="text-emerald-400">✔ พบ IP: ${this.wazuhIp}</span>` 
-                        : `<span class="text-amber-400 flex items-center justify-center">
+                    ${hasIp
+                ? `<span class="text-emerald-400">✔ พบ IP: ${this.wazuhIp}</span>`
+                : `<span class="text-amber-400 flex items-center justify-center">
                             <span class="inline-block w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mr-2"></span>
                             กำลังค้นหา IP จาก VM...
                            </span>`
-                    }
+            }
                 </div>
                 
                 <!-- IP Input -->
@@ -428,12 +430,12 @@ export default class StepWizard {
                 <button id="btn-open-dashboard"
                     ${!hasIp ? 'disabled' : ''}
                     class="w-full p-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-blue-900/30 transition-all active:scale-[0.98] ${!hasIp ? 'opacity-50 cursor-not-allowed' : ''}">
-                    🌐 เปิด Dashboard
+                    เปิด Dashboard
                 </button>
                 
                 <!-- Manual refresh -->
                 <button id="btn-refresh-ip" class="text-xs text-sky-400 hover:text-sky-300 transition-colors">
-                    🔄 ค้นหา IP อีกครั้ง
+                    ค้นหา IP อีกครั้ง
                 </button>
             </div>
             
@@ -462,7 +464,7 @@ export default class StepWizard {
 
             <button id="btn-back-step5"
                 class="w-full p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 border border-slate-700/50 font-medium transition-all active:scale-[0.98] text-sm">
-                ← ย้อนกลับ
+                ย้อนกลับ
             </button>
         </div>
         `;
@@ -545,6 +547,13 @@ export default class StepWizard {
         const btnStopVm = this.container.querySelector('#btn-stop-vm');
         if (btnStopVm) {
             btnStopVm.addEventListener('click', async () => {
+                const confirmed = await Notification.confirm(
+                    "ยืนยันที่จะปิดการทำงานของ Wazuh Server หรือไม่?",
+                    "ยืนยันการปิดเครื่อง"
+                );
+
+                if (!confirmed) return;
+
                 this.setLoading(true, "กำลังปิดเครื่อง...");
                 try {
                     const res = await eel.stop_vm()();
