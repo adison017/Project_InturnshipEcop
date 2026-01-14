@@ -170,14 +170,14 @@ export default class StepWizard {
                 const ipInput = this.container.querySelector('#wazuh-ip-input');
                 if (ipInput) {
                     ipInput.value = res.ip;
-                    ipInput.classList.remove('border-slate-700/50');
-                    ipInput.classList.add('border-emerald-500/50', 'bg-emerald-900/20');
+                    ipInput.classList.remove('border-neutral-200');
+                    ipInput.classList.add('border-black', 'bg-white', 'text-black', 'shadow-sm');
                 }
 
                 // Update status indicator
                 const statusEl = this.container.querySelector('#ip-status');
                 if (statusEl) {
-                    statusEl.innerHTML = `<span class="text-emerald-400 flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg> พบ IP: ${res.ip}</span>`;
+                    statusEl.innerHTML = `<span class="text-emerald-500 font-bold flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg> พบ IP Address: ${res.ip}</span>`;
                 }
 
                 // Enable the button
@@ -269,10 +269,10 @@ export default class StepWizard {
         const btnForce = this.container.querySelector('#btn-force-login');
         
         if (indicator) {
-            indicator.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 transition-all";
+            indicator.className = "flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 border border-emerald-400 shadow-md transition-all";
             indicator.innerHTML = `
-                <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                <span class="text-[10px] text-emerald-400 font-medium">เข้าสู่ระบบแล้ว</span>
+                <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                <span class="text-[10px] text-white font-bold uppercase tracking-wider">เข้าสู่ระบบเรียบร้อย</span>
             `;
         }
         
@@ -295,6 +295,16 @@ export default class StepWizard {
         }
     }
 
+    resetLoginState() {
+        this.loginBypassed = false;
+        this.stopLoginPolling();
+        
+        // If currently on step 3, re-render to reset UI
+        if (this.currentStep === 3) {
+            this.render();
+        }
+    }
+
     render() {
         const stepContent = this.getStepContent();
 
@@ -314,11 +324,11 @@ export default class StepWizard {
             <!-- Progress Indicator -->
             <div class="mb-3 flex-shrink-0">
                 <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-[10px] text-slate-400 font-medium">${this.currentStep} / ${this.totalSteps}</span>
-                    <span class="text-[10px] text-sky-400">${this.getStepTitle()}</span>
+                    <span class="text-[10px] text-neutral-500 font-medium">${this.currentStep} / ${this.totalSteps}</span>
+                    <span class="text-[10px] text-black font-bold uppercase tracking-wider">${this.getStepTitle()}</span>
                 </div>
-                <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-sky-500 to-indigo-500 transition-all duration-500 ease-out"
+                <div class="h-1 bg-neutral-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-black transition-all duration-500 ease-out"
                          style="width: ${(this.currentStep / this.totalSteps) * 100}%"></div>
                 </div>
             </div>
@@ -329,17 +339,17 @@ export default class StepWizard {
             </div>
 
             <!-- Navigation Footer -->
-            <div class="pt-2 mt-auto border-t border-slate-800/50 flex-shrink-0">
+            <div class="pt-2 mt-auto border-t border-neutral-200 flex-shrink-0">
                 <div class="flex justify-end gap-2">
                     ${showBack ? `
                         <button id="btn-nav-back"
-                            class="px-3 py-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 text-xs border border-slate-700/50 font-medium transition-all active:scale-[0.98]">
+                            class="px-4 py-2 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 text-xs border border-neutral-300 font-medium transition-all active:scale-[0.98] shadow-sm">
                             ย้อนกลับ
                         </button>
                     ` : ''}
                     ${showNext ? `
                         <button id="btn-nav-next"
-                            class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium transition-all active:scale-[0.98]">
+                            class="px-5 py-2 rounded-lg bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wide transition-all active:scale-[0.98] shadow-md hover:shadow-lg">
                             ถัดไป
                         </button>
                     ` : ''}
@@ -347,10 +357,10 @@ export default class StepWizard {
             </div>
 
             <!-- Loading Overlay -->
-            <div id="wizard-loader" class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm rounded-xl flex items-center justify-center z-10" style="display: none;">
-                <div class="flex flex-col items-center space-y-2">
-                    <div class="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span class="text-xs text-slate-300">กำลังดำเนินการ...</span>
+            <div id="wizard-loader" class="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-xl flex items-center justify-center z-10" style="display: none;">
+                <div class="flex flex-col items-center space-y-3">
+                    <div class="w-8 h-8 border-2 border-neutral-300 border-t-black rounded-full animate-spin"></div>
+                    <span class="text-xs text-neutral-900 font-medium uppercase tracking-widest">กำลังดำเนินการ...</span>
                 </div>
             </div>
         </div>
@@ -401,22 +411,24 @@ export default class StepWizard {
 
     renderStep0_VBoxInstall() {
         return `
-        <div class="text-center space-y-4">
-            <div class="w-20 h-20 mx-auto flex items-center justify-center mb-2">
-                <img src="VirtualBox.png" class="w-full h-full object-contain drop-shadow-lg" alt="VirtualBox">
+        <div class="text-center space-y-6">
+            <div class="w-24 h-24 mx-auto flex items-center justify-center mb-6">
+                <img src="VirtualBox.png" class="w-full h-full object-contain drop-shadow-xl hover:scale-110 transition-transform duration-500" alt="VirtualBox">
             </div>
-            <div>
-                <h3 class="text-lg font-bold text-white mb-1">ไม่พบ VirtualBox</h3>
-                <p class="text-slate-400 text-xs">กรุณาติดตั้ง VirtualBox ก่อนดำเนินการต่อ</p>
+            <div class="space-y-1">
+                <h3 class="text-lg font-bold text-neutral-900">ไม่พบ VirtualBox</h3>
+                <p class="text-neutral-500 text-xs font-light">กรุณาติดตั้งโปรแกรมหลักก่อนดำเนินการต่อ</p>
             </div>
-            <button id="btn-install-vbox"
-                class="w-full p-3 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white text-sm font-semibold shadow-lg shadow-orange-900/30 transition-all active:scale-[0.98]">
-                ติดตั้ง VirtualBox
-            </button>
-            <button id="btn-recheck"
-                class="text-xs text-sky-400 hover:text-sky-300 transition-colors">
-                ตรวจสอบอีกครั้ง
-            </button>
+            <div class="space-y-3 pt-2">
+                <button id="btn-install-vbox"
+                    class="w-full p-3 rounded-xl bg-black hover:bg-neutral-800 text-white text-sm font-bold shadow-lg shadow-neutral-900/10 transition-all active:scale-[0.98] border border-transparent hover:border-neutral-700">
+                    ติดตั้ง VirtualBox
+                </button>
+                <button id="btn-recheck"
+                    class="text-xs text-neutral-500 hover:text-black transition-colors border-b border-transparent hover:border-black pb-0.5">
+                    ตรวจสอบอีกครั้ง
+                </button>
+            </div>
         </div>
         `;
     }
@@ -424,12 +436,12 @@ export default class StepWizard {
     renderStep1_Checking() {
         return `
         <div class="text-center space-y-4">
-            <div class="w-14 h-14 mx-auto bg-sky-500/10 rounded-xl flex items-center justify-center">
-                <div class="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+            <div class="w-16 h-16 mx-auto bg-neutral-100 rounded-full flex items-center justify-center">
+                <div class="w-8 h-8 border-2 border-neutral-300 border-t-black rounded-full animate-spin"></div>
             </div>
             <div>
-                <h3 class="text-lg font-bold text-white mb-1">กำลังตรวจสอบระบบ</h3>
-                <p class="text-slate-400 text-xs">รอสักครู่...</p>
+                <h3 class="text-lg font-bold text-neutral-900 mb-1">กำลังตรวจสอบระบบ</h3>
+                <p class="text-neutral-500 text-xs font-mono">กรุณารอสักครู่...</p>
             </div>
         </div>
         `;
@@ -440,17 +452,17 @@ export default class StepWizard {
         if (!this.ovaExists) {
             // OVA not found - show download section
             return `
-            <div class="text-center space-y-4">
-                <div class="w-20 h-20 mx-auto flex items-center justify-center mb-2">
-                    <img src="virtualboxova_103624.webp" class="w-full h-full object-contain drop-shadow-lg" alt="OVA">
+            <div class="text-center space-y-6">
+                <div class="w-24 h-24 mx-auto flex items-center justify-center mb-6">
+                    <img src="virtualboxova_103624.webp" class="w-full h-full object-contain drop-shadow-xl hover:scale-110 transition-transform duration-500" alt="OVA">
                 </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-1">ไม่พบไฟล์ติดตั้ง</h3>
-                    <p class="text-slate-400 text-xs">วางไฟล์ <code class="text-sky-400 bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">Wazuh-Install-Ready.ova</code><br>ในโฟลเดอร์เดียวกับโปรแกรม</p>
+                <div class="space-y-1">
+                    <h3 class="text-lg font-bold text-neutral-900">ไม่พบไฟล์ติดตั้ง</h3>
+                    <p class="text-neutral-500 text-xs leading-relaxed">วางไฟล์ <code class="text-black bg-neutral-100 px-2 py-0.5 rounded-md text-[11px] font-mono border border-neutral-200">Wazuh-Install-Ready.ova</code><br>ในโฟลเดอร์เดียวกับโปรแกรม</p>
                 </div>
-                <div class="space-y-2">
+                <div class="space-y-2 pt-2">
                     <button id="btn-recheck-ova"
-                        class="w-full p-2.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 text-xs border border-slate-700/50 transition-all">
+                        class="w-full p-3 rounded-xl bg-white hover:bg-neutral-50 text-neutral-900 text-sm font-medium border border-neutral-300 shadow-sm transition-all hover:border-black">
                         ตรวจสอบอีกครั้ง
                     </button>
                 </div>
@@ -459,17 +471,17 @@ export default class StepWizard {
         } else {
             // OVA found - show install button
             return `
-            <div class="text-center space-y-4">
-                <div class="w-20 h-20 mx-auto flex items-center justify-center mb-2">
-                    <img src="virtualboxova_103624.webp" class="w-full h-full object-contain drop-shadow-lg" alt="OVA">
+            <div class="text-center space-y-6">
+                <div class="w-24 h-24 mx-auto flex items-center justify-center mb-6">
+                    <img src="virtualboxova_103624.webp" class="w-full h-full object-contain drop-shadow-xl hover:scale-110 transition-transform duration-500" alt="OVA">
                 </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-1">พร้อมติดตั้ง</h3>
-                    <p class="text-slate-400 text-xs">พบไฟล์ <code class="text-emerald-400 bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">Wazuh-Install-Ready.ova</code></p>
+                <div class="space-y-1">
+                    <h3 class="text-lg font-bold text-neutral-900">พร้อมติดตั้ง</h3>
+                    <p class="text-neutral-600 text-xs">พบไฟล์ <code class="text-black bg-neutral-100 px-2 py-0.5 rounded-md text-[11px] font-mono border border-neutral-200">Wazuh-Install-Ready.ova</code></p>
                 </div>
-                <div class="space-y-2">
+                <div class="space-y-2 pt-2">
                     <button id="btn-install-vm"
-                        class="w-full p-3 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-semibold shadow-lg shadow-emerald-900/30 transition-all active:scale-[0.98]">
+                        class="w-full p-3 rounded-xl bg-black hover:bg-neutral-800 text-white text-sm font-bold shadow-lg shadow-neutral-900/10 transition-all active:scale-[0.98]">
                         ติดตั้ง Virtual Machine
                     </button>
                 </div>
@@ -485,61 +497,66 @@ export default class StepWizard {
         const vmPass = this.credentials?.vm?.pass || '132547';
 
         return `
-        <div class="flex flex-col h-full items-center justify-center space-y-3 relative py-2">
+        <div class="flex flex-col h-full items-center justify-center space-y-4 relative py-2">
             
             <!-- Header -->
-            <div class="text-center space-y-1">
-                <div class="inline-flex items-center justify-center w-16 h-16 mb-2">
-                    <img src="UbuntuCoF.svg.png" class="w-full h-full object-contain drop-shadow-md" alt="Ubuntu">
+            <div class="text-center space-y-2">
+                <div class="inline-flex items-center justify-center w-20 h-20 mb-2">
+                    <img src="UbuntuCoF.svg.png" class="w-full h-full object-contain drop-shadow-lg hover:scale-110 transition-transform duration-500" alt="Ubuntu">
                 </div>
                 <div>
-                    <h3 class="text-base font-bold text-white tracking-tight">ข้อมูลบัญชี Virtual Machine</h3>
-                    <p class="text-[10px] text-slate-400">ใช้สำหรับล็อกอินเข้าหน้าจอ VirtualBox</p>
+                    <h3 class="text-base font-bold text-neutral-900 tracking-tight">เข้าสู่ระบบ Virtual Machine</h3>
+                    <p class="text-[10px] text-neutral-500 uppercase tracking-widest">ข้อมูลสำหรับเข้าสู่ระบบ</p>
                 </div>
             </div>
 
             <!-- Login Status Indicator (Polled) -->
-            <div id="login-status-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/50 border border-slate-700/50 transition-all">
-                <div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
-                <span class="text-[10px] text-slate-400 font-medium">รอการล็อกอิน...</span>
+            <div id="login-status-indicator" class="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 border border-amber-200 shadow-sm transition-all">
+                <div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+                <span class="text-[10px] text-amber-700 font-bold tracking-wider">กำลังรอการเข้าสู่ระบบ...</span>
             </div>
 
             <!-- Credentials Card -->
-            <div class="w-full max-w-xs bg-slate-900/40 backdrop-blur-md rounded-2xl p-2 border border-white/5 space-y-1.5">
-                <div class="flex items-center justify-between px-1">
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">รายละเอียดบัญชี</span>
+            <div class="w-full max-w-xs bg-white rounded-2xl p-3 border border-neutral-200 shadow-[0_4px_30px_rgb(0,0,0,0.04)] space-y-2">
+                <div class="flex items-center justify-between px-2 pb-1 border-b border-neutral-100">
+                    <span class="text-[9px] font-bold text-neutral-900 uppercase tracking-[0.2em] py-1">รายละเอียดบัญชี</span>
                 </div>
                 
-                <div class="flex flex-col gap-1.5">
+                <div class="flex flex-col gap-2">
                     <!-- Username Row -->
-                    <div class="group flex items-center justify-between p-1.5 pl-2 bg-slate-800/60 rounded-xl border border-slate-700/30 hover:border-purple-500/30 transition-all">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-lg bg-purple-500/10 flex items-center justify-center border border-purple-500/10">
-                                <svg class="w-3 h-3 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    <div class="group flex items-center justify-between p-2 pl-3 bg-neutral-50 rounded-xl border border-neutral-200 hover:border-black hover:bg-white transition-all duration-300">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-neutral-900 text-white flex items-center justify-center">
+                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[7px] text-slate-500 leading-none mb-0.5 font-bold">USERNAME</span>
-                                <span class="text-[11px] font-mono text-slate-200 font-medium tracking-wide group-hover:text-purple-300 transition-colors">${vmUser}</span>
+                                <span class="text-[7px] text-neutral-400 leading-none mb-0.5 font-bold uppercase">USERNAME</span>
+                                <span class="text-xs font-mono text-neutral-900 font-bold tracking-wide">${vmUser}</span>
                             </div>
                         </div>
-                        <button class="copy-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-700/30 hover:bg-purple-500 hover:text-white text-slate-400 transition-all active:scale-95" data-copy="${vmUser}" title="Copy Username">
-                             <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        <button class="copy-btn w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black hover:text-white text-neutral-400 transition-all active:scale-95" data-copy="${vmUser}" title="Copy Username">
+                             <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                         </button>
                     </div>
 
                     <!-- Password Row -->
-                    <div class="group flex items-center justify-between p-1.5 pl-2 bg-slate-800/60 rounded-xl border border-slate-700/30 hover:border-pink-500/30 transition-all">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-lg bg-pink-500/10 flex items-center justify-center border border-pink-500/10">
-                                <svg class="w-3 h-3 text-pink-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    <div class="group flex items-center justify-between p-2 pl-3 bg-neutral-50 rounded-xl border border-neutral-200 hover:border-black hover:bg-white transition-all duration-300">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-neutral-900 text-white flex items-center justify-center">
+                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[7px] text-slate-500 leading-none mb-0.5 font-bold">PASSWORD</span>
-                                <span class="text-[11px] font-mono text-slate-200 font-medium tracking-wide group-hover:text-pink-300 transition-colors">${vmPass}</span>
+                                <span class="text-[7px] text-neutral-400 leading-none mb-0.5 font-bold uppercase">PASSWORD</span>
+                                <div class="flex items-center gap-2">
+                                    <span id="vm-pass-display" class="text-xs font-mono text-neutral-900 font-bold tracking-wide">••••••</span>
+                                    <button class="toggle-pass-btn w-4 h-4 text-neutral-400 hover:text-black focus:outline-none transition-colors" data-target="vm-pass-display" data-value="${vmPass}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <button class="copy-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-700/30 hover:bg-pink-500 hover:text-white text-slate-400 transition-all active:scale-95" data-copy="${vmPass}" title="Copy Password">
-                            <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        <button class="copy-btn w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black hover:text-white text-neutral-400 transition-all active:scale-95" data-copy="${vmPass}" title="Copy Password">
+                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                         </button>
                     </div>
                 </div>
@@ -554,33 +571,32 @@ export default class StepWizard {
         const hasIp = this.wazuhIp && this.ipFound;
 
         return `
-        <div class="flex flex-col h-full items-center justify-center space-y-3 relative py-2">
+        <div class="flex flex-col h-full items-center justify-center space-y-4 relative py-2">
             
             <!-- Header -->
-            <div class="text-center space-y-1">
-                <div class="inline-flex items-center justify-center w-16 h-16 mb-2">
-                    <img src="images.jpg" class="w-full h-full object-contain rounded-xl drop-shadow-md" alt="Wazuh">
+            <div class="text-center space-y-2">
+                <div class="inline-flex items-center justify-center w-20 h-20 mb-2">
+                    <img src="images.jpg" class="w-full h-full object-cover rounded-2xl drop-shadow-lg hover:scale-105 hover:rotate-3 transition-all duration-500" alt="Wazuh">
                 </div>
                 <div>
-                    <h3 class="text-base font-bold text-white tracking-tight">เข้าใช้งาน Wazuh Dashboard</h3>
-                    <p class="text-[10px] text-slate-400">เชื่อมต่อผ่าน IP Address</p>
+                    <h3 class="text-base font-bold text-neutral-900 tracking-tight">เข้าใช้งาน Wazuh Dashboard</h3>
+                    <p class="text-[10px] text-neutral-500 uppercase tracking-widest">การเชื่อมต่อ</p>
                 </div>
             </div>
 
             <!-- Connection Status -->
             <div class="flex justify-center">
                 ${hasIp 
-                    ? `<div class="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div><span class="text-[9px] font-medium text-emerald-400">ONLINE</span></div>`
-                    : `<div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full"><div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div><span class="text-[9px] font-medium text-amber-400">CONNECTING</span></div>`
+                    ? `<div class="flex items-center gap-1.5 bg-emerald-500 border border-emerald-400 px-3 py-1 rounded-full shadow-md"><div class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div><span class="text-[9px] font-bold text-white tracking-widest">เชื่อมต่อสำเร็จ</span></div>`
+                    : `<div class="flex items-center gap-1.5 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full"><div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div><span class="text-[9px] font-bold text-amber-700 tracking-widest">กำลังเชื่อมต่อ...</span></div>`
                 }
             </div>
 
             <!-- IP Input Section -->
-            <div class="w-full max-w-xs space-y-1.5">
+            <div class="w-full max-w-xs space-y-2">
                 <div class="relative group">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-slate-500 group-focus-within:text-sky-500 transition-colors">
-
+                        <span class="text-neutral-400 group-focus-within:text-black transition-colors">
                         </span>
                     </div>
                     
@@ -588,27 +604,27 @@ export default class StepWizard {
                         id="wazuh-ip-input" 
                         placeholder="192.168.x.x"
                         value="${hasIp ? this.wazuhIp : ''}"
-                        class="w-full pl-2 pr-20 py-2.5 bg-slate-900/80 border ${hasIp ? 'border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-slate-700/50 text-slate-200'} rounded-2xl focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 transition-all font-mono text-xs shadow-inner"
+                        class="w-full pl-3 pr-20 py-3 bg-white border ${hasIp ? 'border-black text-black shadow-sm' : 'border-neutral-200 text-neutral-600'} rounded-xl focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all font-mono text-sm shadow-[0_2px_10px_rgb(0,0,0,0.02)]"
                     />
 
                     <!-- Actions Container -->
-                    <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-slate-800/80 rounded-xl p-0.5 border border-white/5 backdrop-blur-sm">
+                    <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white rounded-lg p-0.5 border border-neutral-200 shadow-sm">
                         <!-- Refresh Button -->
                         <button id="btn-refresh-ip" 
-                            class="p-1.5 rounded-lg text-slate-400 hover:text-sky-400 hover:bg-slate-700/50 transition-all hover:rotate-180 duration-500" 
+                            class="p-1.5 rounded-md text-neutral-400 hover:text-black hover:bg-neutral-50 transition-all hover:rotate-180 duration-500" 
                             title="Refresh IP">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                         </button>
                         
-                        <div class="w-px h-3 bg-slate-600/30"></div>
+                        <div class="w-px h-3 bg-neutral-200"></div>
 
                         <!-- Open Button -->
                         <button id="btn-open-dashboard" 
-                            class="p-1.5 rounded-lg text-sky-500 hover:text-white hover:bg-sky-500 transition-all active:scale-95 disabled:opacity-50 disabled:hover:bg-transparent" 
+                            class="p-1.5 rounded-md text-neutral-900 hover:text-white hover:bg-black transition-all active:scale-95 disabled:opacity-50 disabled:hover:bg-transparent" 
                             title="Open Dashboard">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
                         </button>
@@ -617,41 +633,46 @@ export default class StepWizard {
             </div>
 
             <!-- Credentials Card -->
-            <div class="w-full max-w-xs bg-slate-900/40 backdrop-blur-md rounded-2xl p-2 border border-white/5 space-y-1.5 mt-0.5">
-                <div class="flex items-center justify-between px-1">
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">รายละเอียดบัญชี</span>
+             <div class="w-full max-w-xs bg-white rounded-2xl p-3 border border-neutral-200 shadow-[0_4px_30px_rgb(0,0,0,0.04)] space-y-2">
+                <div class="flex items-center justify-between px-2 pb-1 border-b border-neutral-100">
+                    <span class="text-[9px] font-bold text-neutral-900 uppercase tracking-[0.2em] py-1">ข้อมูลสำหรับผู้ดูแลระบบ</span>
                 </div>
                 
-                <div class="flex flex-col gap-1.5">
+                <div class="flex flex-col gap-2">
                     <!-- Username Row -->
-                    <div class="group flex items-center justify-between p-1.5 pl-2 bg-slate-800/60 rounded-xl border border-slate-700/30 hover:border-sky-500/30 transition-all">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-lg bg-sky-500/10 flex items-center justify-center border border-sky-500/10">
-                                <svg class="w-3 h-3 text-sky-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    <div class="group flex items-center justify-between p-2 pl-3 bg-neutral-50 rounded-xl border border-neutral-200 hover:border-black hover:bg-white transition-all duration-300">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-neutral-900 text-white flex items-center justify-center">
+                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[7px] text-slate-500 leading-none mb-0.5 font-bold">USERNAME</span>
-                                <span class="text-[11px] font-mono text-slate-200 font-medium tracking-wide group-hover:text-sky-300 transition-colors">${wazuhUser}</span>
+                                <span class="text-[7px] text-neutral-400 leading-none mb-0.5 font-bold uppercase">USERNAME</span>
+                                <span class="text-xs font-mono text-neutral-900 font-bold tracking-wide">${wazuhUser}</span>
                             </div>
                         </div>
-                        <button class="copy-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-700/30 hover:bg-sky-500 hover:text-white text-slate-400 transition-all active:scale-95" data-copy="${wazuhUser}" title="Copy Username">
-                             <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        <button class="copy-btn w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black hover:text-white text-neutral-400 transition-all active:scale-95" data-copy="${wazuhUser}" title="Copy Username">
+                             <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                         </button>
                     </div>
 
                     <!-- Password Row -->
-                    <div class="group flex items-center justify-between p-1.5 pl-2 bg-slate-800/60 rounded-xl border border-slate-700/30 hover:border-emerald-500/30 transition-all">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/10">
-                                <svg class="w-3 h-3 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    <div class="group flex items-center justify-between p-2 pl-3 bg-neutral-50 rounded-xl border border-neutral-200 hover:border-black hover:bg-white transition-all duration-300">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-neutral-900 text-white flex items-center justify-center">
+                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[7px] text-slate-500 leading-none mb-0.5 font-bold">PASSWORD</span>
-                                <span class="text-[11px] font-mono text-slate-200 font-medium tracking-wide group-hover:text-emerald-300 transition-colors">${wazuhPass}</span>
+                                <span class="text-[7px] text-neutral-400 leading-none mb-0.5 font-bold uppercase">PASSWORD</span>
+                                <div class="flex items-center gap-2">
+                                    <span id="wazuh-pass-display" class="text-xs font-mono text-neutral-900 font-bold tracking-wide">••••••</span>
+                                    <button class="toggle-pass-btn w-4 h-4 text-neutral-400 hover:text-black focus:outline-none transition-colors" data-target="wazuh-pass-display" data-value="${wazuhPass}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <button class="copy-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-700/30 hover:bg-emerald-500 hover:text-white text-slate-400 transition-all active:scale-95" data-copy="${wazuhPass}" title="Copy Password">
-                            <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        <button class="copy-btn w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black hover:text-white text-neutral-400 transition-all active:scale-95" data-copy="${wazuhPass}" title="Copy Password">
+                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                         </button>
                     </div>
                 </div>
@@ -701,10 +722,20 @@ export default class StepWizard {
         const btnInstallVm = this.container.querySelector('#btn-install-vm');
         if (btnInstallVm) {
             btnInstallVm.addEventListener('click', async () => {
-                this.setLoading(true, "กำลังติดตั้ง Virtual Machine (อาจใช้เวลา 5-10 นาที)...");
+                // Use Global Progress instead of internal loader
+                if (window.GlobalProgress) {
+                    // Import is huge (4GB+), simulating 2 minutes for now but it might be faster or slower
+                    window.GlobalProgress.show('Installing Virtual Machine', 'กำลังนำเข้าไฟล์ Image (ใช้เวลา 2-5 นาที)...', 120000);
+                } else {
+                    this.setLoading(true, "กำลังติดตั้ง Virtual Machine (อาจใช้เวลา 5-10 นาที)...");
+                }
+                
                 this.log("เริ่มติดตั้ง Wazuh Virtual Machine...", "warning");
                 try {
                     const res = await eel.install_vm()();
+                    
+                    if (window.GlobalProgress) window.GlobalProgress.finish();
+                    
                     this.log(res.msg, res.status);
                     if (res.status === 'success') {
                         this.vmExists = true;
@@ -715,9 +746,11 @@ export default class StepWizard {
                         this.goNext();
                     }
                 } catch (e) {
+                    if (window.GlobalProgress) window.GlobalProgress.hide();
                     this.log("ติดตั้ง Virtual Machine ไม่สำเร็จ", "error");
+                    this.setLoading(false); // Helper fallback
                 }
-                this.setLoading(false);
+                // setLoading(false) is handled by finish() for global, but good to ensure
             });
         }
 
@@ -775,6 +808,33 @@ export default class StepWizard {
                     setTimeout(() => btn.innerHTML = originalIcon, 1500);
                     this.log(`คัดลอก "${text}" แล้ว`, 'success');
                 });
+                });
+            });
+
+        // Password Toggle Buttons
+        const toggleBtns = this.container.querySelectorAll('.toggle-pass-btn');
+        toggleBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const targetId = btn.getAttribute('data-target');
+                const realPass = btn.getAttribute('data-value');
+                const targetEl = this.container.querySelector(`#${targetId}`);
+                
+                if (!targetEl) return;
+                
+                const isHidden = targetEl.innerText === '••••••';
+                
+                if (isHidden) {
+                    targetEl.innerText = realPass;
+                    // Eye Slash
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>`;
+                } else {
+                    targetEl.innerText = '••••••';
+                    // Eye
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
+                }
             });
         });
     }
