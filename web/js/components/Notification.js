@@ -26,44 +26,44 @@ export default class Notification {
             const themes = {
                 info: {
                     border: 'border-sky-500/20',
-                    glow: 'from-sky-500/20 to-indigo-500/20',
-                    btnOk: 'from-sky-600 to-indigo-600 shadow-sky-900/50 hover:shadow-sky-600/50 hover:from-sky-500 hover:to-indigo-500',
+                    glow: 'from-sky-500/10 to-indigo-500/10',
+                    btnOk: 'from-sky-500 to-indigo-500 shadow-sky-500/20 hover:shadow-sky-500/30 hover:from-sky-400 hover:to-indigo-400',
                     icon: ''
                 },
                 success: {
                     border: 'border-emerald-500/30',
-                    glow: 'from-emerald-500/20 to-teal-500/20',
-                    btnOk: 'from-emerald-600 to-teal-600 shadow-emerald-900/50 hover:shadow-emerald-600/50 hover:from-emerald-500 hover:to-teal-500',
-                    icon: 'text-emerald-400'
+                    glow: 'from-emerald-500/10 to-teal-500/10',
+                    btnOk: 'from-emerald-500 to-teal-500 shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400',
+                    icon: 'text-emerald-500'
                 },
                 warning: {
                     border: 'border-amber-500/30',
-                    glow: 'from-amber-500/20 to-orange-500/20',
-                    btnOk: 'from-amber-600 to-orange-600 shadow-amber-900/50 hover:shadow-amber-600/50 hover:from-amber-500 hover:to-orange-500',
-                    icon: 'text-amber-400'
+                    glow: 'from-amber-500/10 to-orange-500/10',
+                    btnOk: 'from-amber-500 to-orange-500 shadow-amber-500/20 hover:shadow-amber-500/30 hover:from-amber-400 hover:to-orange-400',
+                    icon: 'text-amber-500'
                 },
                 error: {
                     border: 'border-red-500/30',
-                    glow: 'from-red-500/20 to-rose-500/20',
-                    btnOk: 'from-red-600 to-rose-600 shadow-red-900/50 hover:shadow-red-600/50 hover:from-red-500 hover:to-rose-500',
-                    icon: 'text-red-400'
+                    glow: 'from-red-500/10 to-rose-500/10',
+                    btnOk: 'from-red-600 to-rose-600 shadow-red-500/20 hover:shadow-red-500/30 hover:from-red-500 hover:to-rose-500',
+                    icon: 'text-red-500'
                 }
             };
             const theme = themes[type] || themes.info;
 
             modal.innerHTML = `
-                <div class="relative bg-slate-900 border ${theme.border} rounded-2xl p-6 shadow-2xl max-w-md w-[90%] transform scale-95 translate-y-4 transition-all duration-300 shadow-sky-500/5">
+                <div class="relative bg-white border ${theme.border} rounded-2xl p-6 shadow-2xl max-w-md w-[90%] transform scale-95 translate-y-4 transition-all duration-300 shadow-slate-200">
                     <div class="absolute -inset-1 bg-gradient-to-r ${theme.glow} rounded-2xl blur opacity-50 -z-10"></div>
                     <div class="space-y-4">
-                        <h3 id="notification-title" class="text-xl font-bold text-white tracking-wide ${theme.icon}"></h3>
-                        <p id="notification-message" class="text-slate-300 font-light leading-relaxed"></p>
+                        <h3 id="notification-title" class="text-xl font-bold text-slate-800 tracking-wide ${theme.icon}"></h3>
+                        <p id="notification-message" class="text-slate-500 font-light leading-relaxed"></p>
                         
                         <div class="flex justify-end space-x-3 pt-4">
                             <button id="notification-cancel" class="
-                                px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 
-                                text-slate-400 hover:text-white hover:bg-white/10 
+                                px-5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 
+                                text-slate-500 hover:text-slate-800 hover:bg-slate-100 
                                 transition-all duration-200 text-sm font-medium
-                                focus:outline-none focus:ring-2 focus:ring-slate-500/50
+                                focus:outline-none focus:ring-2 focus:ring-slate-300
                             ">
                                 ยกเลิก
                             </button>

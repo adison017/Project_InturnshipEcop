@@ -160,24 +160,44 @@ def install_vm():
     except Exception as e:
         return {"status": "error", "msg": f"เกิดข้อผิดพลาด: {str(e)}"}
 
+def _is_vm_running(vbox_path):
+    try:
+        if IS_WINDOWS:
+            result = subprocess.run([vbox_path, "list", "runningvms"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            result = subprocess.run([vbox_path, "list", "runningvms"], capture_output=True, text=True)
+            
+        if VM_NAME in result.stdout:
+            return True
+        return False
+    except:
+        return False
+
 @eel.expose
 def start_vm():
     vbox = get_virtualbox_path()
+    if _is_vm_running(vbox):
+         return {"status": "success", "msg": "เครื่องทำงานอยู่แล้ว"}
+
     try:
         cmd = [vbox, "startvm", VM_NAME, "--type", "gui"]
         subprocess.run(cmd, check=True)
         return {"status": "success", "msg": "กำลังเปิดเครื่อง Wazuh..."}
     except Exception as e:
-        return {"status": "error", "msg": "เปิดเครื่องไม่สำเร็จ (อาจเปิดอยู่แล้ว)"}
+        return {"status": "error", "msg": "เปิดเครื่องไม่สำเร็จ"}
 
 @eel.expose
 def stop_vm():
     vbox = get_virtualbox_path()
+    if not _is_vm_running(vbox):
+        return {"status": "success", "msg": "เครื่องปิดอยู่แล้ว"}
+
     try:
         cmd = [vbox, "controlvm", VM_NAME, "acpipowerbutton"]
         subprocess.run(cmd, check=True)
         return {"status": "success", "msg": "สั่งปิดเครื่องแล้ว"}
     except:
+        # Fallback force off if ACPI fails? No, keep it safe.
         return {"status": "error", "msg": "สั่งปิดไม่ได้"}
 
 @eel.expose
@@ -210,17 +230,7 @@ def get_wazuh_ip():
 @eel.expose
 def check_vm_running():
     vbox = get_virtualbox_path()
-    try:
-        if IS_WINDOWS:
-            result = subprocess.run([vbox, "list", "runningvms"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
-        else:
-            result = subprocess.run([vbox, "list", "runningvms"], capture_output=True, text=True)
-            
-        if VM_NAME in result.stdout:
-            return True
-        return False
-    except:
-        return False
+    return _is_vm_running(vbox)
 
 @eel.expose
 def check_vm_logged_in():

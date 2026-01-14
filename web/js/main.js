@@ -21,43 +21,136 @@ tailwind.config = {
 // UI Helper Functions
 const UI = {
     setStatus: (msg, type = 'info') => {
-        const box = document.getElementById('status-box');
-        if (!box) return;
+        const content = document.getElementById('terminal-content');
+        const body = document.getElementById('terminal-body');
+        
+        if (!content) return; // Terminal not ready
 
-        const p = document.createElement('div');
-        // Added padding and rounded corners for background style
-        p.className = 'mt-1.5 px-2 py-1 rounded-md break-words flex items-start animate-fade-in-fast';
-
-        let colorClass = 'text-sky-300';
-        let bgClass = 'bg-sky-500/5 hover:bg-sky-500/10';
-        let prefix = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>`;
+        const line = document.createElement('div');
+        line.className = 'flex items-start animate-fade-in-fast';
+        
+        // Config based on type
+        let colorClass = 'text-slate-300';
 
         if (type === 'success') { 
             colorClass = 'text-emerald-400'; 
-            bgClass = 'bg-emerald-500/10 hover:bg-emerald-500/20'; 
-            prefix = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>`; 
         }
         else if (type === 'error') { 
             colorClass = 'text-red-400'; 
-            bgClass = 'bg-red-500/10 hover:bg-red-500/20';
-            prefix = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`; 
         }
         else if (type === 'warning') { 
             colorClass = 'text-amber-400'; 
-            bgClass = 'bg-amber-500/10 hover:bg-amber-500/20';
-            prefix = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`; 
+        }
+        else {
+            colorClass = 'text-slate-300';
         }
 
-        p.classList.add(...bgClass.split(' '));
-        p.innerHTML = `<span class="mr-2 opacity-70 select-none flex items-center h-full pt-0.5">${prefix}</span><span class="${colorClass}">${msg}</span>`;
+        // Time
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
 
-        box.appendChild(p);
-        box.scrollTop = box.scrollHeight;
+        line.innerHTML = `
+            <div class="break-words">
+                <span class="text-slate-500 text-[9px] mr-2 select-none">[${timeStr}]</span>
+                <span class="${colorClass} font-medium message-text"></span>
+            </div>
+        `;
+
+        content.appendChild(line);
+        
+        // Typing Animation
+        const target = line.querySelector('.message-text');
+        let i = 0;
+        const typeSpeed = 10; // ms per char
+
+        const typeWriter = () => {
+            if (i < msg.length) {
+                target.textContent += msg.charAt(i);
+                i++;
+                if (body) body.scrollTop = body.scrollHeight;
+                setTimeout(typeWriter, typeSpeed);
+            }
+        };
+        
+        typeWriter();
+
+        // Initial scroll
+        if (body) {
+            body.scrollTop = body.scrollHeight;
+        }
     }
 };
 
 // Expose setStatus to global scope for StepWizard to use
 window.setStatus = UI.setStatus;
+
+// ============================================
+// Global Progress Controller
+// ============================================
+class GlobalProgress {
+    constructor() {
+        this.el = document.getElementById('global-progress');
+        this.titleEl = document.getElementById('progress-title');
+        this.descEl = document.getElementById('progress-desc');
+        this.barEl = document.getElementById('progress-bar');
+        this.percentEl = document.getElementById('progress-percent');
+        this.interval = null;
+    }
+
+    show(title, description, durationMs = 5000) {
+        if (!this.el) return;
+
+        // Reset
+        this.reset();
+        
+        // Content
+        if (this.titleEl) this.titleEl.textContent = title;
+        if (this.descEl) this.descEl.textContent = description;
+        
+        // Show
+        this.el.classList.remove('opacity-0', 'pointer-events-none');
+        
+        // Start simulation
+        const startTime = Date.now();
+        const update = () => {
+            const elapsed = Date.now() - startTime;
+            let progress = (elapsed / durationMs) * 100;
+            
+            // Cap at 95% until finish() is called
+            if (progress > 95) progress = 95;
+            
+            this.setPercent(progress);
+        };
+        
+        this.interval = setInterval(update, 50);
+    }
+
+    setPercent(p) {
+        const pct = Math.min(100, Math.max(0, p));
+        if (this.barEl) this.barEl.style.width = `${pct}%`;
+        if (this.percentEl) this.percentEl.innerText = `${Math.floor(pct)}%`;
+    }
+
+    finish() {
+        if (this.interval) clearInterval(this.interval);
+        this.setPercent(100);
+        
+        setTimeout(() => {
+            this.hide();
+        }, 800);
+    }
+
+    hide() {
+        if (this.el) this.el.classList.add('opacity-0', 'pointer-events-none');
+        if (this.interval) clearInterval(this.interval);
+    }
+    
+    reset() {
+        if (this.interval) clearInterval(this.interval);
+        this.setPercent(0);
+    }
+}
+window.GlobalProgress = new GlobalProgress();
 
 // ============================================
 // VM Toggle Controller
@@ -79,33 +172,64 @@ class VMToggleController {
     
     async init() {
         // Wait for Eel to be ready
-        await this.checkVMStatus();
+        await this.checkVMStatus(true); // Initial check
         
         // Attach event listener
         if (this.btn) {
             this.btn.addEventListener('click', () => this.toggle());
         }
+
+        // Start Polling for external state changes (e.g. user closed VBox window)
+        setInterval(() => {
+            if (!this.isLoading) {
+                this.checkVMStatus(false);
+            }
+        }, 2000); // Check every 2 seconds
     }
     
-    async checkVMStatus() {
+    async checkVMStatus(firstRun = false) {
         try {
-            const vmCheck = await eel.check_vm_exists()();
-            this.vmExists = vmCheck.exists;
-            
-            // Check actual running state
-            this.isRunning = await eel.check_vm_running()();
-
-            if (this.vmExists) {
-                this.btn.disabled = false;
-                this.btn.title = 'เปิด Virtual Machine';
-                // initial text update handled by updateIcon
-            } else {
-                this.btn.disabled = true;
-                this.btn.title = 'ยังไม่ได้ติดตั้ง Virtual Machine';
-                this.updateText('ไม่พบ Virtual Machine', 'text-slate-600');
+            // Only check existence on first run to save resources
+            if (firstRun) {
+                const vmCheck = await eel.check_vm_exists()();
+                this.vmExists = vmCheck.exists;
+                if (!this.vmExists) {
+                    this.btn.disabled = true;
+                    this.btn.title = 'ยังไม่ได้ติดตั้ง Virtual Machine';
+                    this.updateText('ไม่พบ Virtual Machine', 'text-slate-400');
+                    return;
+                }
             }
             
-            this.updateIcon();
+            if (!this.vmExists) return;
+
+            // Check actual running state
+            const isRunningNow = await eel.check_vm_running()();
+
+            // Detect State Change (External)
+            if (this.isRunning !== isRunningNow) {
+                 this.isRunning = isRunningNow;
+                 this.updateIcon();
+                 
+                 // If stopped externally (and not handled by stopVM logic)
+                 if (!this.isRunning) {
+                     if (window.wizard) {
+                         window.wizard.resetLoginState();
+                         // Auto-navigate back to Step 3 if on Step 4
+                         if (window.wizard.currentStep === 4) {
+                             window.wizard.stopIpPolling();
+                             window.wizard.goToStep(3);
+                             UI.setStatus('ตรวจพบการปิด VM: กลับสู่หน้าจอ Login', 'warning');
+                         }
+                     }
+                 }
+            }
+
+            if (firstRun) {
+                 this.btn.disabled = false;
+                 this.updateIcon(); // Ensure icon matches state
+            }
+
         } catch (e) {
             console.error('Error checking VM status:', e);
         }
@@ -132,30 +256,25 @@ class VMToggleController {
 
         if (this.isRunning) {
             // Running State: 
-            // - Show Power ON icon (ensure it's white to contrast with colored bg)
-            // - BG: Green (Active) -> Red (Hover/Splimit)
             this.iconPowerOff.classList.add('hidden');
             this.iconPowerOn.classList.remove('hidden');
             
-            // Adjust icon colors for filled button
             this.iconPowerOn.setAttribute('class', 'w-7 h-7 text-white transition-colors duration-300');
 
             // Green BG, Red Hover BG
             this.btn.className = `${baseClasses} bg-emerald-500 border-emerald-400 hover:bg-red-500 hover:border-red-500 hover:shadow-red-500/30 shadow-emerald-500/30`;
             this.btn.title = 'ปิด Virtual Machine';
-            this.updateText('ทำงานอยู่', 'text-slate-400');
+            this.updateText('ทำงานอยู่', 'text-slate-500');
         } else {
             // Stopped State:
-            // - Show Power OFF icon (Green to indicate "Start")
-            // - BG: Gray (Default)
             this.iconPowerOff.classList.remove('hidden');
             this.iconPowerOn.classList.add('hidden');
             
-            // Reset icon color
-            this.iconPowerOff.setAttribute('class', 'w-7 h-7 text-slate-400 group-hover:text-slate-300 transition-colors duration-300');
+            // Light Theme: White BG, Gray Icon
+            this.iconPowerOff.setAttribute('class', 'w-7 h-7 text-slate-400 group-hover:text-emerald-500 transition-colors duration-300');
 
-            // Gray BG, Green Hover Border
-            this.btn.className = `${baseClasses} bg-slate-800/60 border-slate-600/50 hover:border-emerald-500/70 hover:shadow-emerald-500/20`;
+            // Light BG
+            this.btn.className = `${baseClasses} bg-white border-slate-200 hover:border-emerald-500/70 hover:shadow-emerald-500/20`;
             this.btn.title = 'เปิด Virtual Machine';
             this.updateText('ปิดอยู่', 'text-slate-400');
         }
@@ -174,16 +293,27 @@ class VMToggleController {
     async startVM() {
         this.setLoading(true);
         this.updateText('กำลังเปิด...', 'text-slate-400');
+        
+        // Show Global Progress
+        if (window.GlobalProgress) {
+            window.GlobalProgress.show('Starting', 'กำลังเปิด Virtual Machine...', 15000); // 15s avg boot
+        }
+        
         UI.setStatus('กำลังเปิด Wazuh Server...', 'warning');
         
         try {
             const res = await eel.start_vm()();
+            
+            // Finish Progress
+            if (window.GlobalProgress) window.GlobalProgress.finish();
+            
             UI.setStatus(res.msg, res.status);
             
             if (res.status === 'success') {
                 this.isRunning = true;
             }
         } catch (e) {
+             if (window.GlobalProgress) window.GlobalProgress.hide();
             UI.setStatus('เปิดเครื่องไม่สำเร็จ', 'error');
         }
         
@@ -209,6 +339,11 @@ class VMToggleController {
             
             if (res.status === 'success') {
                 this.isRunning = false;
+
+                // Reset Login State
+                if (window.wizard) {
+                    window.wizard.resetLoginState();
+                }
 
                 // If we are on the Dashboard step (4) and just stopped the VM, go back to Credentials (3)
                 if (window.wizard && window.wizard.currentStep === 4) {
