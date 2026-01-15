@@ -1,57 +1,117 @@
 <!DOCTYPE html>
 <html lang="th">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wazuh Launcher</title>
-    <link rel="icon" href="logo_transparent.png">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wazuh Server</title>
+    <link rel="icon" href="logo_transparent.png" />
 
     <!-- Libraries -->
     <script type="text/javascript" src="/eel.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
-        href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&family=Pixelify+Sans:wght@400..700&family=Silkscreen:wght@400;700&display=swap"
-        rel="stylesheet">
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&family=Pixelify+Sans:wght@400..700&family=Sarabun:wght@300;400;500;600;700&family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/styles.css">
-</head>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
 
-<body
-    class="bg-slate-950 text-white h-screen flex items-center justify-center selection:bg-sky-500 selection:text-white overflow-hidden relative">
+  <body
+    class="bg-gradient-to-l from-stone-300 via-white via-75% to-white text-slate-800 h-screen flex items-center justify-center selection:bg-sky-500 selection:text-white overflow-hidden relative"
+  >
+    <!-- Global Loader -->
+    <div id="global-loader" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-neutral-100 rounded-full"></div>
+            <div class="absolute top-0 w-16 h-16 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <p class="mt-6 text-neutral-400 font-medium tracking-[0.2em] text-xs uppercase animate-pulse">กำลังเริ่มต้นระบบ...</p>
+    </div>
 
-    <!-- Background Decoration -->
-    <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]">
+    <!-- Global Progress Overlay -->
+    <div id="global-progress" class="fixed inset-0 z-[60] bg-white/95 backdrop-blur-xl flex flex-col items-center justify-center transition-all duration-500 pointer-events-none opacity-0">
+        <div class="w-72 space-y-8 text-center relative z-10">
+            <!-- Icon/Spinner -->
+            <div class="relative w-24 h-24 mx-auto mb-4">
+                 <div class="absolute inset-0 border-[6px] border-neutral-100 rounded-full"></div>
+                 <div class="absolute inset-0 border-[6px] border-black border-t-transparent rounded-full animate-spin"></div>
+                 <div class="absolute inset-0 flex items-center justify-center">
+                    <span id="progress-percent" class="text-2xl font-mono font-bold text-black tracking-tighter">0%</span>
+                 </div>
+            </div>
+            
+            <!-- Text Content -->
+            <div class="space-y-1">
+                <h3 id="progress-title" class="text-xl font-bold text-black tracking-wide">Processing</h3>
+                <p id="progress-desc" class="text-xs text-neutral-500 font-medium tracking-widest uppercase">Please wait...</p>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="space-y-2">
+                <div class="w-full h-1 bg-neutral-100 rounded-full overflow-hidden relative">
+                    <div id="progress-bar" class="h-full bg-black transition-all duration-300 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Background Decoration (Monochrome) -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none -z-0">
+            <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-neutral-200/40 rounded-full blur-[120px] animate-pulse"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neutral-300/30 rounded-full blur-[120px] animate-pulse" style="animation-delay: 1s;"></div>
         </div>
     </div>
 
     <!-- Main Container -->
-    <div id="app"
-        class="animate-enter w-[96%] max-w-none h-[92%] glass-panel rounded-2xl p-6 grid grid-cols-2 gap-6 relative overflow-hidden">
+    <div
+      id="app"
+      class="animate-enter w-[98%] max-w-none h-[98%] rounded-2xl p-5 grid grid-cols-5 gap-5 relative overflow-hidden"
+    >
 
-        <!-- Decorative Top Line -->
-        <div
-            class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-sky-500/50 to-transparent">
+      <!-- LEFT COLUMN: Logo, Terminal & Virtual Machine Control -->
+      <div class="col-span-3 flex flex-col justify-between space-y-6 bg-gradient-to-br from-white via-white to-slate-50 rounded-[2.5rem] p-8 border border-white shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 relative overflow-hidden backdrop-blur-3xl transition-all duration-500 hover:shadow-[0_30px_60px_-10px_rgba(0,0,0,0.2)]">
+        
+        <!-- Ambient Background Glow -->
+        <div class="absolute top-0 right-0 w-64 h-64 bg-slate-100/50 rounded-full blur-3xl -z-10 translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+
+        <!-- Header -->
+        <div id="header-container" class="relative z-10 scale-105 transform transition-transform"></div>
+
+        <!-- Terminal -->
+        <div id="terminal-container" class="flex-1 w-full relative z-10 shadow-sm rounded-xl overflow-hidden ring-1 ring-black/5"></div>
+
+        <!-- Virtual Machine Control Button -->
+        <div id="vm-control-container" class="flex flex-col items-center justify-center space-y-3 relative z-10">
+          <button id="btn-vm-toggle" 
+            class="group relative w-16 h-16 rounded-full bg-white border border-slate-100 transition-all duration-500 flex items-center justify-center shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_35px_-10px_rgba(16,185,129,0.3)] hover:-translate-y-1 active:scale-95 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
+            title="เปิด/ปิด Virtual Machine"
+            disabled>
+            <!-- Power Icon (default - VM stopped, green) -->
+            <svg id="icon-power-off" class="w-8 h-8 text-emerald-500 group-hover:text-emerald-400 transition-colors duration-300 transform group-hover:scale-110" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9"/>
+            </svg>
+            <!-- Power Icon (hidden - VM running, red) -->
+            <svg id="icon-power-on" class="w-8 h-8 text-red-500 group-hover:text-red-400 transition-colors duration-300 hidden transform group-hover:scale-110 group-hover:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9"/>
+            </svg>
+            <!-- Loading Spinner -->
+            <div id="icon-loading" class="w-8 h-8 border-2 border-slate-200 border-t-emerald-500 rounded-full animate-spin hidden"></div>
+            
+            <!-- Button Ripple/Glow Effect -->
+            <div class="absolute inset-0 rounded-full ring-2 ring-emerald-500/0 group-hover:ring-emerald-500/10 transition-all duration-500"></div>
+          </button>
+          <span id="vm-status-text" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest transition-colors">Checking...</span>
         </div>
+      </div>
 
-        <!-- LEFT COLUMN: Icon & Terminal -->
-        <div class="flex flex-col justify-between space-y-6">
-            <div id="header-container"></div>
-            <div id="terminal-container"></div>
-        </div>
+      <!-- RIGHT COLUMN: Step Wizard -->
+      <div class="col-span-2 flex flex-col justify-between relative overflow-hidden" id="wizard-container">
+        <!-- Wizard will be mounted here -->
+      </div>
 
-        <!-- RIGHT COLUMN: Controls -->
-        <div
-            class="flex flex-col justify-center space-y-4 bg-white/5 p-6 rounded-2xl border border-white/5 shadow-inner">
-            <div id="os-input-container"></div>
-            <div id="action-buttons-container"></div>
-        </div>
-
-        <!-- Footer -->
-        <div id="footer-container"></div>
+      <!-- Footer -->
+      <div id="footer-container"></div>
     </div>
 
     <!-- Application Logic -->
@@ -59,21 +119,22 @@
 
     <!-- Component Mounting -->
     <script type="module">
-        import Header from './js/components/Header.js';
-        import Terminal from './js/components/Terminal.js';
-        import OSInput from './js/components/OSInput.js';
-        import ActionButtons from './js/components/ActionButtons.js';
-        import Footer from './js/components/Footer.js';
+      import Header from "./js/components/Header.js";
+      import Terminal from "./js/components/Terminal.js";
+      import Footer from "./js/components/Footer.js";
+      import StepWizard from "./js/components/StepWizard.js";
 
-        // Mount Components
-        document.getElementById('header-container').innerHTML = Header();
-        document.getElementById('terminal-container').innerHTML = Terminal();
-        document.getElementById('os-input-container').innerHTML = OSInput();
-        document.getElementById('action-buttons-container').innerHTML = ActionButtons();
-        document.getElementById('footer-container').innerHTML = Footer();
+      // Mount Static Components
+      document.getElementById("header-container").innerHTML = Header();
+      document.getElementById("terminal-container").innerHTML = Terminal();
+      document.getElementById("footer-container").innerHTML = Footer();
+
+      // Initialize Wizard after a short delay for Eel to be ready
+      setTimeout(() => {
+        const wizard = new StepWizard("wizard-container");
+        wizard.init();
+        window.wizard = wizard; // Expose globally for debugging
+      }, 600);
     </script>
-
-
-</body>
-
+  </body>
 </html>

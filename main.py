@@ -19,6 +19,16 @@ VBOX_PATH_WIN = r"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 VBOX_INSTALLER_URL = "https://download.virtualbox.org/virtualbox/7.2.4/VirtualBox-7.2.4-170995-Win.exe"
 VBOX_INSTALLER_NAME = "VirtualBox-Setup.exe"
 
+# Credentials
+VM_USER = "adison"
+VM_PASS = "132547"
+WAZUH_USER = "admin"
+WAZUH_PASS = "admin"
+
+# Versions
+UBUNTU_VERSION = "22.04 LTS"
+WAZUH_VERSION = "4.9.0"
+
 # Initialize Eel
 eel.init('web')
 
@@ -63,6 +73,34 @@ def get_os_info():
             return {"os": "Linux", "detail": "Unknown"}
     else:
         return {"os": platform.system(), "detail": "Unknown"}
+
+@eel.expose
+def get_app_versions():
+    """Returns versions of Ubuntu, Wazuh, and VirtualBox"""
+    vbox_ver = "Unknown"
+    
+    # Get VirtualBox Version
+    try:
+        vbox_cmd = get_virtualbox_path()
+        if IS_WINDOWS and not os.path.exists(vbox_cmd):
+             vbox_ver = "Not Installed"
+        else:
+            if IS_WINDOWS:
+                # VBoxManage --version
+                res = subprocess.run([vbox_cmd, "--version"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            else:
+                 res = subprocess.run([vbox_cmd, "--version"], capture_output=True, text=True)
+            
+            if res.returncode == 0:
+                vbox_ver = res.stdout.strip().split('r')[0] # Often format: 7.0.8r156879 -> 7.0.8
+    except:
+        pass
+
+    return {
+        "ubuntu": UBUNTU_VERSION,
+        "wazuh": WAZUH_VERSION,
+        "vbox": vbox_ver
+    }
 
 @eel.expose
 def check_system():
@@ -154,24 +192,44 @@ def install_vm():
     except Exception as e:
         return {"status": "error", "msg": f"เกิดข้อผิดพลาด: {str(e)}"}
 
+def _is_vm_running(vbox_path):
+    try:
+        if IS_WINDOWS:
+            result = subprocess.run([vbox_path, "list", "runningvms"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            result = subprocess.run([vbox_path, "list", "runningvms"], capture_output=True, text=True)
+            
+        if VM_NAME in result.stdout:
+            return True
+        return False
+    except:
+        return False
+
 @eel.expose
 def start_vm():
     vbox = get_virtualbox_path()
+    if _is_vm_running(vbox):
+         return {"status": "success", "msg": "เครื่องทำงานอยู่แล้ว"}
+
     try:
         cmd = [vbox, "startvm", VM_NAME, "--type", "gui"]
         subprocess.run(cmd, check=True)
         return {"status": "success", "msg": "กำลังเปิดเครื่อง Wazuh..."}
     except Exception as e:
-        return {"status": "error", "msg": "เปิดเครื่องไม่สำเร็จ (อาจเปิดอยู่แล้ว)"}
+        return {"status": "error", "msg": "เปิดเครื่องไม่สำเร็จ"}
 
 @eel.expose
 def stop_vm():
     vbox = get_virtualbox_path()
+    if not _is_vm_running(vbox):
+        return {"status": "success", "msg": "เครื่องปิดอยู่แล้ว"}
+
     try:
         cmd = [vbox, "controlvm", VM_NAME, "acpipowerbutton"]
         subprocess.run(cmd, check=True)
         return {"status": "success", "msg": "สั่งปิดเครื่องแล้ว"}
     except:
+        # Fallback force off if ACPI fails? No, keep it safe.
         return {"status": "error", "msg": "สั่งปิดไม่ได้"}
 
 @eel.expose
@@ -201,14 +259,121 @@ def get_wazuh_ip():
     except Exception as e:
         return {"status": "error", "msg": str(e)}
 
-if __name__ == '__main__':
-    # DPI Scaling for Windows
+@eel.expose
+def check_vm_running():
+    vbox = get_virtualbox_path()
+    return _is_vm_running(vbox)
+
+@eel.expose
+def check_vm_logged_in():
+    """ตรวจสอบว่ามีการล็อกอินใน VM แล้วหรือยัง"""
+    vbox = get_virtualbox_path()
+    try:
+        # 1. Check LoggedInUsers (Count)
+        cmd_count = [vbox, "guestproperty", "get", VM_NAME, "/VirtualBox/GuestInfo/OS/LoggedInUsers"]
+        
+        # Helper to run command
+        def run_vbox_cmd(c):
+            if IS_WINDOWS:
+                return subprocess.run(c, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            else:
+                return subprocess.run(c, capture_output=True, text=True)
+
+        res_count = run_vbox_cmd(cmd_count).stdout.strip()
+        if "Value:" in res_count:
+            try:
+                if int(res_count.split("Value:")[1].strip()) > 0:
+                    return True
+            except:
+                pass
+        
+        # 2. Check LoggedInUsersList (Names) - Fallback
+        cmd_list = [vbox, "guestproperty", "get", VM_NAME, "/VirtualBox/GuestInfo/OS/LoggedInUsersList"]
+        res_list = run_vbox_cmd(cmd_list).stdout.strip()
+        if "Value:" in res_list:
+            user_list = res_list.split("Value:")[1].strip()
+            if user_list: # If string is not empty
+                return True
+
+        return False
+    except Exception as e:
+        print(f"Login check error: {e}")
+        return False
+
+@eel.expose
+def check_vm_exists():
+    """ตรวจสอบว่า VM มีอยู่แล้วหรือยัง"""
+    vbox = get_virtualbox_path()
+    try:
+        if IS_WINDOWS:
+            result = subprocess.run([vbox, "list", "vms"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            result = subprocess.run([vbox, "list", "vms"], capture_output=True, text=True)
+        
+        if VM_NAME in result.stdout:
+            return {"exists": True}
+        return {"exists": False}
+    except Exception as e:
+        return {"exists": False, "error": str(e)}
+
+@eel.expose
+def check_ova_exists():
+    """ตรวจสอบว่าไฟล์ OVA มีอยู่หรือยัง"""
+    return {"exists": os.path.exists(OVA_FILE)}
+
+@eel.expose
+def get_credentials():
+    """คืนค่า credentials สำหรับ VM และ Wazuh Dashboard"""
+    return {
+        "vm": {"user": VM_USER, "pass": VM_PASS},
+        "wazuh": {"user": WAZUH_USER, "pass": WAZUH_PASS}
+    }
+
+@eel.expose
+def reset_window_size():
+    """Resets the window size and centers it (Windows only)"""
     if IS_WINDOWS:
         try:
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
-        except:
-            pass
-        
+            # Re-calculate center
+            user32 = ctypes.windll.user32
+            screen_width = user32.GetSystemMetrics(0)
+            screen_height = user32.GetSystemMetrics(1)
+            
+            window_width = 900
+            window_height = 610
+            
+            center_x = int((screen_width - window_width) / 2)
+            center_y = int((screen_height - window_height) / 2)
+
+            # Retry looking for window
+            hwnd = None
+            for i in range(10): # Try for a bit if called early
+                hwnd = ctypes.windll.user32.FindWindowW(None, "Wazuh Launcher")
+                if hwnd:
+                    break
+                time.sleep(0.1)
+                
+            if hwnd:
+                # Constants
+                GWL_STYLE = -16
+                WS_MAXIMIZEBOX = 0x00010000
+                WS_THICKFRAME = 0x00040000 
+                
+                # Apply style
+                style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
+                style = style & ~WS_MAXIMIZEBOX # Disable Maximize
+                style = style & ~WS_THICKFRAME  # Disable Resize Sizing Border
+                
+                ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+                
+                # Force refresh window to apply styles AND FORCE POSITION/SIZE
+                ctypes.windll.user32.SetWindowPos(hwnd, 0, center_x, center_y, window_width, window_height, 0x0064)
+        except Exception as e:
+            print(f"Error resetting window: {e}")
+
+if __name__ == '__main__':
+    # Remove manual DPI awareness to ensure coordinates match EEL/Chrome expectations (Logical Pixels)
+    if IS_WINDOWS:
         user32 = ctypes.windll.user32
         screen_width = user32.GetSystemMetrics(0)
         screen_height = user32.GetSystemMetrics(1)
@@ -217,9 +382,27 @@ if __name__ == '__main__':
         screen_width = 1920
         screen_height = 1080
 
+    # 1. Configuration: Fixed Size (Reduced size)
     window_width = 900
-    window_height = 550
+    window_height = 610
+    
+    # 2. Function: Center Window
     center_x = int((screen_width - window_width) / 2)
     center_y = int((screen_height - window_height) / 2)
     
-    eel.start('index.html', size=(window_width, window_height), position=(center_x, center_y))
+    print(f"Starting generic app window at {window_width}x{window_height} position ({center_x},{center_y})")
+    
+    # Start Eel (non-blocking)
+    eel.start('index.html', size=(window_width, window_height), position=(center_x, center_y), block=False)
+    
+    # 3. Technical: Remove Maximize/Resize on Windows
+    if IS_WINDOWS:
+        import time
+        import threading
+        
+        # Run in thread to not delay main loop entry
+        threading.Thread(target=reset_window_size, daemon=True).start()
+
+    # Main Loop
+    while True:
+        eel.sleep(1.0)
