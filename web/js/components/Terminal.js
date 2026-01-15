@@ -26,7 +26,7 @@ export default function Terminal() {
             </div>
 
             <!-- Active Line / Cursor -->
-            <div class="flex items-center mt-1 mb-8">
+            <div class="flex items-center mb-8">
                 <span class="w-1.5 h-3 bg-slate-400 animate-pulse block"></span>
             </div>
         </div>

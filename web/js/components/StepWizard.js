@@ -4,7 +4,10 @@ import Notification from './Notification.js';
 export default class StepWizard {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
-        this.currentStep = 1;
+        
+        // Load saved step or default to 1
+        const saved = parseInt(localStorage.getItem('wazuh_wizard_step'));
+        this.currentStep = (saved && !isNaN(saved)) ? saved : 1;
         this.totalSteps = 4; // Reduced: removed Start/Stop step
         this.vmExists = false;
         this.ovaExists = false;
@@ -14,6 +17,7 @@ export default class StepWizard {
         this.ipInterval = null;
         this.ipFound = false;
         this.loginBypassed = false; // New flag
+        this.versions = { ubuntu: '', wazuh: '' }; // Version info
 
         // Bind methods
         this.render = this.render.bind(this);
@@ -48,12 +52,25 @@ export default class StepWizard {
 
             // Get credentials
             this.credentials = await eel.get_credentials()();
+            
+            // Get Versions
+            try {
+                this.versions = await eel.get_app_versions()();
+            } catch (e) {
+                console.error("Failed to fetch versions", e);
+            }
 
-            // Determine starting step
+            // Validate current step based on system state
             if (this.vmExists) {
-                this.currentStep = 3; // Go to VM Credentials
+                // If VM exists, we should be at least on step 3
+                // If user was on step 2 (Install), move them to 3 (Credentials)
+                // If user was on step 3 or 4, keep it
+                if (this.currentStep < 3) {
+                    this.currentStep = 3;
+                }
             } else {
-                this.currentStep = 2; // Go to Install (merged with download)
+                // If VM does not exist, force step 2 (Install)
+                this.currentStep = 2;
             }
 
             this.render();
@@ -306,6 +323,9 @@ export default class StepWizard {
     }
 
     render() {
+        // Save current step to persist on reload
+        localStorage.setItem('wazuh_wizard_step', this.currentStep);
+
         const stepContent = this.getStepContent();
 
         // Show back button conditions:
@@ -501,8 +521,11 @@ export default class StepWizard {
             
             <!-- Header -->
             <div class="text-center space-y-2">
-                <div class="inline-flex items-center justify-center w-20 h-20 mb-2">
-                    <img src="UbuntuCoF.svg.png" class="w-full h-full object-contain drop-shadow-lg hover:scale-110 transition-transform duration-500" alt="Ubuntu">
+                <div class="inline-flex flex-col items-center justify-center mb-2">
+                    <div class="w-20 h-20 flex items-center justify-center mb-1">
+                        <img src="UbuntuCoF.svg.png" class="w-full h-full object-contain drop-shadow-lg hover:scale-110 transition-transform duration-500" alt="Ubuntu">
+                    </div>
+                    <span class="text-[9px] font-mono text-neutral-400 font-bold bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200 shadow-sm">v${this.versions?.ubuntu || '22.04'}</span>
                 </div>
                 <div>
                     <h3 class="text-base font-bold text-neutral-900 tracking-tight">เข้าสู่ระบบ Virtual Machine</h3>
@@ -575,8 +598,11 @@ export default class StepWizard {
             
             <!-- Header -->
             <div class="text-center space-y-2">
-                <div class="inline-flex items-center justify-center w-20 h-20 mb-2">
-                    <img src="images.jpg" class="w-full h-full object-cover rounded-2xl drop-shadow-lg hover:scale-105 hover:rotate-3 transition-all duration-500" alt="Wazuh">
+                <div class="inline-flex flex-col items-center justify-center mb-2">
+                    <div class="w-20 h-20 flex items-center justify-center mb-1">
+                        <img src="images.jpg" class="w-full h-full object-cover rounded-2xl drop-shadow-lg hover:scale-105 hover:rotate-3 transition-all duration-500" alt="Wazuh">
+                    </div>
+                    <span class="text-[9px] font-mono text-neutral-400 font-bold bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200 shadow-sm">v${this.versions?.wazuh || '4.9.0'}</span>
                 </div>
                 <div>
                     <h3 class="text-base font-bold text-neutral-900 tracking-tight">เข้าใช้งาน Wazuh Dashboard</h3>
@@ -587,8 +613,8 @@ export default class StepWizard {
             <!-- Connection Status -->
             <div class="flex justify-center">
                 ${hasIp 
-                    ? `<div class="flex items-center gap-1.5 bg-emerald-500 border border-emerald-400 px-3 py-1 rounded-full shadow-md"><div class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div><span class="text-[9px] font-bold text-white tracking-widest">เชื่อมต่อสำเร็จ</span></div>`
-                    : `<div class="flex items-center gap-1.5 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full"><div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div><span class="text-[9px] font-bold text-amber-700 tracking-widest">กำลังเชื่อมต่อ...</span></div>`
+                    ? `<div class="flex items-center gap-1.5 bg-emerald-500 border border-emerald-400 px-3 py-1 rounded-full shadow-md"><div class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div><span class="text-[9px] font-bold text-white tracking-widest">พบ SERVER</span></div>`
+                    : `<div class="flex items-center gap-1.5 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full"><div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div><span class="text-[9px] font-bold text-amber-700 tracking-widest">ไม่พบ SERVER</span></div>`
                 }
             </div>
 
@@ -602,16 +628,16 @@ export default class StepWizard {
                     
                     <input type="text" 
                         id="wazuh-ip-input" 
-                        placeholder="192.168.x.x"
+                        placeholder="172.x.x.x"
                         value="${hasIp ? this.wazuhIp : ''}"
-                        class="w-full pl-3 pr-20 py-3 bg-white border ${hasIp ? 'border-black text-black shadow-sm' : 'border-neutral-200 text-neutral-600'} rounded-xl focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all font-mono text-sm shadow-[0_2px_10px_rgb(0,0,0,0.02)]"
+                        class="w-full pl-3 pr-20 py-3 bg-white border ${hasIp ? 'border-gray-200 text-black shadow-sm' : 'border-gray-200 text-neutral-600'} rounded-full focus:outline-none focus:border-gray-200 focus:ring-1 focus:ring-black transition-all font-mono text-sm shadow-[0_2px_10px_rgb(0,0,0,0.02)]"
                     />
 
                     <!-- Actions Container -->
-                    <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white rounded-lg p-0.5 border border-neutral-200 shadow-sm">
+                    <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white rounded-full p-0.5 border border-neutral-200 shadow-sm">
                         <!-- Refresh Button -->
                         <button id="btn-refresh-ip" 
-                            class="p-1.5 rounded-md text-neutral-400 hover:text-black hover:bg-neutral-50 transition-all hover:rotate-180 duration-500" 
+                            class="p-1.5 rounded-full text-neutral-400 hover:text-black hover:bg-neutral-50 transition-all hover:rotate-180 duration-500" 
                             title="Refresh IP">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -622,7 +648,7 @@ export default class StepWizard {
 
                         <!-- Open Button -->
                         <button id="btn-open-dashboard" 
-                            class="p-1.5 rounded-md text-neutral-900 hover:text-white hover:bg-black transition-all active:scale-95 disabled:opacity-50 disabled:hover:bg-transparent" 
+                            class="p-1.5 rounded-full text-neutral-900 hover:text-white hover:bg-black transition-all active:scale-95 disabled:opacity-50 disabled:hover:bg-transparent" 
                             title="Open Dashboard">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
