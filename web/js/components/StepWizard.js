@@ -63,12 +63,24 @@ export default class StepWizard {
             }
 
             // Validate current step based on system state
+            // Validate current step based on system state
             if (this.vmExists) {
-                // If VM exists, we should be at least on step 3 (Credentials)
-                // If user was on step 2 (Install), move them to 3
-                // If user was on step 3 or 4, keep it
-                if (this.currentStep < 3) {
+                // Check if VM is running
+                try {
+                    this.vmRunning = await eel.check_vm_running()();
+                } catch (e) {
+                    console.error("Failed to check VM running status", e);
+                    this.vmRunning = false;
+                }
+
+                if (!this.vmRunning) {
+                    // If VM is OFF, always force Step 3 (Credentials/Start VM)
                     this.currentStep = 3;
+                } else {
+                    // If VM is ON, ensure we are at least on step 3
+                    if (this.currentStep < 3) {
+                        this.currentStep = 3;
+                    }
                 }
             } else {
                 // If VM does not exist, force step 2 (Install Wazuh)
