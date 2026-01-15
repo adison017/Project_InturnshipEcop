@@ -25,6 +25,10 @@ VM_PASS = "132547"
 WAZUH_USER = "admin"
 WAZUH_PASS = "admin"
 
+# Versions
+UBUNTU_VERSION = "22.04 LTS"
+WAZUH_VERSION = "4.9.0"
+
 # Initialize Eel
 eel.init('web')
 
@@ -69,6 +73,34 @@ def get_os_info():
             return {"os": "Linux", "detail": "Unknown"}
     else:
         return {"os": platform.system(), "detail": "Unknown"}
+
+@eel.expose
+def get_app_versions():
+    """Returns versions of Ubuntu, Wazuh, and VirtualBox"""
+    vbox_ver = "Unknown"
+    
+    # Get VirtualBox Version
+    try:
+        vbox_cmd = get_virtualbox_path()
+        if IS_WINDOWS and not os.path.exists(vbox_cmd):
+             vbox_ver = "Not Installed"
+        else:
+            if IS_WINDOWS:
+                # VBoxManage --version
+                res = subprocess.run([vbox_cmd, "--version"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            else:
+                 res = subprocess.run([vbox_cmd, "--version"], capture_output=True, text=True)
+            
+            if res.returncode == 0:
+                vbox_ver = res.stdout.strip().split('r')[0] # Often format: 7.0.8r156879 -> 7.0.8
+    except:
+        pass
+
+    return {
+        "ubuntu": UBUNTU_VERSION,
+        "wazuh": WAZUH_VERSION,
+        "vbox": vbox_ver
+    }
 
 @eel.expose
 def check_system():

@@ -5,18 +5,22 @@ export default function Header() {
             <!-- Elegant Glow -->
             <div class="absolute -inset-4 bg-gradient-to-tr from-gray-200 via-gray-100 to-white rounded-full blur-xl opacity-0 group-hover:opacity-100 transition duration-700"></div>
             
-            <!-- Logo Container -->
-            <div class="relative w-24 h-24 bg-white rounded-2xl rotate-3 group-hover:rotate-0 transition-transform duration-500 ease-out flex items-center justify-center shadow-sm">
-                <img src="logo_transparent.png" class="w-16 h-16 object-contain drop-shadow-sm opacity-90 group-hover:opacity-100 transition-opacity" alt="Logo">
+            <!-- Logo Container (Circular with Refresh Icon) -->
+            <div onclick="window.location.reload()" 
+                 class="relative w-24 h-30 flex items-center justify-center cursor-pointer group" 
+                 title="Reload Application">
+                
+                <!-- Spinning Refresh Icon (Absolute centered, visible on hover) -->
+                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-[1.2] transition-all duration-500 pointer-events-none">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full text-neutral-500 animate-[spin_3s_linear_infinite]" fill="currentColor" viewBox="0 0 24 24" stroke="0.5">
+                        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                     </svg>
+                </div>
 
-                <!-- Integrated Refresh Button -->
-                <button onclick="window.location.reload()" 
-                    class="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-full border border-neutral-100 shadow-md flex items-center justify-center text-neutral-400 hover:text-black hover:border-neutral-300 transition-all opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 duration-300 z-10 hover:shadow-lg" 
-                    title="Reload Application">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                </button>
+                <!-- Central Logo (No Background) -->
+                <div class="relative w-20 h-20 flex items-center justify-center transition-all duration-300 z-10">
+                    <img src="logo_transparent.png" class="w-20 h-20 object-contain opacity-90 group-hover:opacity-100 transition-opacity" alt="Logo">
+                </div>
             </div>
         </div>
         

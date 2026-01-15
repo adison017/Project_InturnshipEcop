@@ -373,8 +373,30 @@ class VMToggleController {
 }
 
 // Initialize VM Toggle Controller after Eel is ready
-setTimeout(() => {
+setTimeout(async () => {
     window.vmController = new VMToggleController();
+
+    // Fetch and display versions in Terminal
+    try {
+        const versions = await eel.get_app_versions()();
+        const termContent = document.getElementById('terminal-content');
+        if (termContent && versions) {
+             const addLine = (label, val, color='text-slate-400') => {
+                const div = document.createElement('div');
+                div.className = 'flex items-start ml-2 opacity-0 animate-[fade-in_0.5s_ease-out_forwards]';
+                div.style.animationDelay = '0.3s'; // Stagger slightly
+                div.innerHTML = `<span class="${color} w-20 font-semibold">${label}</span> <span class="text-slate-400 mr-2">::</span> <span class="text-slate-200">${val}</span>`;
+                termContent.appendChild(div);
+             };
+             
+             addLine('UBUNTU', versions.ubuntu, 'text-[#E95420]'); // Ubuntu Orange
+             addLine('WAZUH', versions.wazuh, 'text-[#0078D4]');   // Wazuh Blue
+             addLine('VBOX', versions.vbox, 'text-[#2D73B9]');    // VirtualBox Blue
+        }
+    } catch(e) {
+        console.error("Failed to get versions", e);
+    }
+    
     
     // Hide Global Loader
     const loader = document.getElementById('global-loader');
