@@ -1,13 +1,13 @@
 export default function Header() {
     return `
-    <div class="relative w-full text-center flex flex-col items-center justify-center pt-2">
+    <div class="relative w-full text-center flex flex-col items-center justify-center pt-1">
         <div class="relative group cursor-default">
             <!-- Elegant Glow -->
             <div class="absolute -inset-4 bg-gradient-to-tr from-gray-200 via-gray-100 to-white rounded-full blur-xl opacity-0 group-hover:opacity-100 transition duration-700"></div>
             
             <!-- Logo Container (Circular with Refresh Icon) -->
             <div onclick="window.location.reload()" 
-                 class="relative w-24 h-30 flex items-center justify-center cursor-pointer group" 
+                 class="relative w-16 h-16 flex items-center justify-center cursor-pointer group" 
                  title="Reload Application">
                 
                 <!-- Spinning Refresh Icon (Absolute centered, visible on hover) -->
@@ -18,18 +18,18 @@ export default function Header() {
                 </div>
 
                 <!-- Central Logo (No Background) -->
-                <div class="relative w-20 h-20 flex items-center justify-center transition-all duration-300 z-10">
-                    <img src="logo_transparent.png" class="w-20 h-20 object-contain opacity-90 group-hover:opacity-100 transition-opacity" alt="Logo">
+                <div class="relative w-14 h-14 flex items-center justify-center transition-all duration-300 z-10">
+                    <img src="logo_transparent.png" class="w-14 h-14 object-contain opacity-90 group-hover:opacity-100 transition-opacity" alt="Logo">
                 </div>
             </div>
         </div>
         
-        <div class="mt-4 space-y-0.5">
-            <h1 class="text-2xl font-bold tracking-tight text-neutral-900 font-sans">
+        <div class="mt-2 space-y-0">
+            <h1 class="text-xl font-bold tracking-tight text-neutral-900 font-sans">
                 WAZUH <span class="font-light">SERVER</span>
             </h1>
             <div class="flex items-center justify-center gap-2">
-                <p class="text-neutral-500 text-[10px] font-medium uppercase">Security Endpoint</p>
+                <p class="text-neutral-500 text-[9px] font-medium uppercase">Security Endpoint</p>
             </div>
         </div>
     </div>

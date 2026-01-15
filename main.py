@@ -348,7 +348,7 @@ def reset_window_size():
             # Retry looking for window
             hwnd = None
             for i in range(10): # Try for a bit if called early
-                hwnd = ctypes.windll.user32.FindWindowW(None, "Wazuh Launcher")
+                hwnd = ctypes.windll.user32.FindWindowW(None, "Wazuh Server")
                 if hwnd:
                     break
                 time.sleep(0.1)

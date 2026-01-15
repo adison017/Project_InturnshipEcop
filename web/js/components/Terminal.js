@@ -1,6 +1,6 @@
 export default function Terminal() {
     return `
-    <div class="w-full h-36 flex flex-col min-h-0 bg-slate-950 rounded-xl border border-slate-800 shadow-sm overflow-hidden font-mono text-[10px]">
+    <div class="w-full h-full flex flex-col min-h-0 bg-slate-950 rounded-xl border border-slate-800 shadow-sm overflow-hidden font-mono text-[10px]">
         <!-- Terminal Header -->
         <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 border-b border-slate-800 flex-shrink-0">
             <div class="flex space-x-1.5">
@@ -26,7 +26,7 @@ export default function Terminal() {
             </div>
 
             <!-- Active Line / Cursor -->
-            <div class="flex items-center mb-8">
+            <div class="flex items-center mb-2">
                 <span class="w-1.5 h-3 bg-slate-400 animate-pulse block"></span>
             </div>
         </div>

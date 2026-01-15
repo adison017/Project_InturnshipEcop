@@ -7,8 +7,8 @@ export default class StepWizard {
         
         // Load saved step or default to 1
         const saved = parseInt(localStorage.getItem('wazuh_wizard_step'));
-        this.currentStep = (saved && !isNaN(saved)) ? saved : 1;
-        this.totalSteps = 4; // Reduced: removed Start/Stop step
+        this.currentStep = (saved && !isNaN(saved)) ? saved : 2;
+        this.totalSteps = 4; // Updated: Removed Checking step
         this.vmExists = false;
         this.ovaExists = false;
         this.vmRunning = false;
@@ -30,14 +30,16 @@ export default class StepWizard {
         await this.checkInitialState();
     }
 
-    async checkInitialState() {
-        this.setLoading(true, "กำลังตรวจสอบระบบ...");
+    async checkInitialState(showLoader = true) {
+        if (showLoader) {
+            this.setLoading(true, "กำลังตรวจสอบระบบ...");
+        }
 
         try {
             // Check VirtualBox first
             const sysCheck = await eel.check_system()();
             if (sysCheck.status !== 'success') {
-                this.currentStep = 0; // Special step for VirtualBox install
+                this.currentStep = 1; // Step 1 for VirtualBox install
                 this.render();
                 return;
             }
@@ -62,19 +64,24 @@ export default class StepWizard {
 
             // Validate current step based on system state
             if (this.vmExists) {
-                // If VM exists, we should be at least on step 3
-                // If user was on step 2 (Install), move them to 3 (Credentials)
+                // If VM exists, we should be at least on step 3 (Credentials)
+                // If user was on step 2 (Install), move them to 3
                 // If user was on step 3 or 4, keep it
                 if (this.currentStep < 3) {
                     this.currentStep = 3;
                 }
             } else {
-                // If VM does not exist, force step 2 (Install)
+                // If VM does not exist, force step 2 (Install Wazuh)
                 this.currentStep = 2;
             }
 
             this.render();
-            this.log(`ตรวจสอบเสร็จสิ้น: Virtual Machine ${this.vmExists ? 'พบ' : 'ไม่พบ'}`, this.vmExists ? 'success' : 'info');
+            // Custom log message logic
+            if (this.vmExists) {
+                this.log(`ตรวจสอบเสร็จสิ้น: ติดตั้งเสร็จสิ้น`, 'success');
+            } else {
+                this.log(`ตรวจสอบเสร็จสิ้น: ยังไม่ติดตั้งไฟล์ .ova wazuh server`, 'info');
+            }
 
         } catch (e) {
             this.log("เกิดข้อผิดพลาดในการตรวจสอบระบบ", "error");
@@ -177,34 +184,51 @@ export default class StepWizard {
     async pollIp() {
         try {
             const res = await eel.get_wazuh_ip()();
+            
+            const statusEl = this.container.querySelector('#wazuh-server-status');
+            const ipInput = this.container.querySelector('#wazuh-ip-input');
+            const btnOpen = this.container.querySelector('#btn-open-dashboard');
 
             if (res.status === 'success' && res.ip) {
-                this.wazuhIp = res.ip;
-                this.ipFound = true;
-                this.stopIpPolling();
+                // If previously not found or just starting
+                if (!this.ipFound) {
+                    this.wazuhIp = res.ip;
+                    this.ipFound = true;
+                    this.stopIpPolling();
 
-                // Update the input field
-                const ipInput = this.container.querySelector('#wazuh-ip-input');
-                if (ipInput) {
-                    ipInput.value = res.ip;
-                    ipInput.classList.remove('border-neutral-200');
-                    ipInput.classList.add('border-black', 'bg-white', 'text-black', 'shadow-sm');
+                    // Update the input field
+                    if (ipInput) {
+                        ipInput.value = res.ip;
+                        ipInput.classList.remove('border-neutral-200');
+                        ipInput.classList.add('border-black', 'bg-white', 'text-black', 'shadow-sm');
+                    }
+
+                    // Update status indicator to Green
+                    if (statusEl) {
+                        statusEl.className = "flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 border border-emerald-200 shadow-sm transition-all";
+                        statusEl.innerHTML = `
+                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                            <span class="text-[10px] text-emerald-700 font-bold tracking-wider uppercase">WAZUH SERVER</span>
+                        `;
+                    }
+
+                    // Enable the button
+                    if (btnOpen) {
+                        btnOpen.disabled = false;
+                        btnOpen.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+
+                    this.log(`พบ IP Address: ${res.ip}`, 'success');
                 }
-
-                // Update status indicator
-                const statusEl = this.container.querySelector('#ip-status');
-                if (statusEl) {
-                    statusEl.innerHTML = `<span class="text-emerald-500 font-bold flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg> พบ IP Address: ${res.ip}</span>`;
+            } else {
+                // Not found - Update Status to Red
+                if (statusEl && !statusEl.classList.contains('bg-red-100')) {
+                    statusEl.className = "flex items-center gap-2 px-4 py-2 rounded-full bg-red-100 border border-red-200 shadow-sm transition-all";
+                    statusEl.innerHTML = `
+                        <div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                        <span class="text-[10px] text-red-700 font-bold tracking-wider uppercase">WAZUH SERVER</span>
+                    `;
                 }
-
-                // Enable the button
-                const btnOpen = this.container.querySelector('#btn-open-dashboard');
-                if (btnOpen) {
-                    btnOpen.disabled = false;
-                    btnOpen.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
-
-                this.log(`พบ IP Address: ${res.ip}`, 'success');
             }
         } catch (e) {
             console.log("Polling IP...", e);
@@ -322,6 +346,18 @@ export default class StepWizard {
         }
     }
 
+    resetDashboardState() {
+        this.ipFound = false;
+        this.wazuhIp = null;
+        this.stopIpPolling();
+        
+        // If currently on step 4, re-render and restart polling
+        if (this.currentStep === 4) {
+             this.render();
+             this.startIpPolling();
+        }
+    }
+
     render() {
         // Save current step to persist on reload
         localStorage.setItem('wazuh_wizard_step', this.currentStep);
@@ -403,21 +439,18 @@ export default class StepWizard {
 
     getStepTitle() {
         const titles = {
-            0: 'ติดตั้ง VirtualBox',
-            1: 'ตรวจสอบระบบ',
-            2: 'ติดตั้ง Virtual Machine',
-            3: 'ข้อมูลเข้าสู่ระบบ Virtual Machine',
-            4: 'เปิด Dashboard'
+            1: 'ติดตั้ง Virtual Box',
+            2: 'ติดตั้ง WAZUH SERVER',
+            3: 'ข้อมูลเข้าสู่ระบบ Ubuntu',
+            4: 'เปิด WAZUH DASHBOARD'
         };
         return titles[this.currentStep] || '';
     }
 
     getStepContent() {
         switch (this.currentStep) {
-            case 0:
-                return this.renderStep0_VBoxInstall();
             case 1:
-                return this.renderStep1_Checking();
+                return this.renderStep1_VBoxInstall();
             case 2:
                 return this.renderStep2_Install();
             case 3:
@@ -429,39 +462,21 @@ export default class StepWizard {
         }
     }
 
-    renderStep0_VBoxInstall() {
+    renderStep1_VBoxInstall() {
         return `
         <div class="text-center space-y-6">
             <div class="w-24 h-24 mx-auto flex items-center justify-center mb-6">
                 <img src="VirtualBox.png" class="w-full h-full object-contain drop-shadow-xl hover:scale-110 transition-transform duration-500" alt="VirtualBox">
             </div>
             <div class="space-y-1">
-                <h3 class="text-lg font-bold text-neutral-900">ไม่พบ VirtualBox</h3>
+                <h3 class="text-lg font-bold text-neutral-900">ไม่พบ Virtual Box</h3>
                 <p class="text-neutral-500 text-xs font-light">กรุณาติดตั้งโปรแกรมหลักก่อนดำเนินการต่อ</p>
             </div>
             <div class="space-y-3 pt-2">
                 <button id="btn-install-vbox"
-                    class="w-full p-3 rounded-xl bg-black hover:bg-neutral-800 text-white text-sm font-bold shadow-lg shadow-neutral-900/10 transition-all active:scale-[0.98] border border-transparent hover:border-neutral-700">
-                    ติดตั้ง VirtualBox
+                    class="w-full p-3 rounded-full bg-black hover:bg-neutral-800 text-white text-sm font-bold shadow-lg shadow-neutral-900/10 transition-all active:scale-[0.98] border border-transparent hover:border-neutral-700">
+                    ติดตั้ง Virtual Box
                 </button>
-                <button id="btn-recheck"
-                    class="text-xs text-neutral-500 hover:text-black transition-colors border-b border-transparent hover:border-black pb-0.5">
-                    ตรวจสอบอีกครั้ง
-                </button>
-            </div>
-        </div>
-        `;
-    }
-
-    renderStep1_Checking() {
-        return `
-        <div class="text-center space-y-4">
-            <div class="w-16 h-16 mx-auto bg-neutral-100 rounded-full flex items-center justify-center">
-                <div class="w-8 h-8 border-2 border-neutral-300 border-t-black rounded-full animate-spin"></div>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold text-neutral-900 mb-1">กำลังตรวจสอบระบบ</h3>
-                <p class="text-neutral-500 text-xs font-mono">กรุณารอสักครู่...</p>
             </div>
         </div>
         `;
@@ -477,12 +492,10 @@ export default class StepWizard {
                     <img src="virtualboxova_103624.webp" class="w-full h-full object-contain drop-shadow-xl hover:scale-110 transition-transform duration-500" alt="OVA">
                 </div>
                 <div class="space-y-1">
-                    <h3 class="text-lg font-bold text-neutral-900">ไม่พบไฟล์ติดตั้ง</h3>
-                    <p class="text-neutral-500 text-xs leading-relaxed">วางไฟล์ <code class="text-black bg-neutral-100 px-2 py-0.5 rounded-md text-[11px] font-mono border border-neutral-200">Wazuh-Install-Ready.ova</code><br>ในโฟลเดอร์เดียวกับโปรแกรม</p>
-                </div>
+                    <h3 class="text-lg font-bold text-neutral-900">ไม่พบไฟล์ .ova</h3>
                 <div class="space-y-2 pt-2">
                     <button id="btn-recheck-ova"
-                        class="w-full p-3 rounded-xl bg-white hover:bg-neutral-50 text-neutral-900 text-sm font-medium border border-neutral-300 shadow-sm transition-all hover:border-black">
+                        class="w-full p-3 rounded-full bg-white hover:bg-neutral-50 text-neutral-900 text-sm font-medium border border-neutral-300 shadow-sm transition-all hover:border-black">
                         ตรวจสอบอีกครั้ง
                     </button>
                 </div>
@@ -497,12 +510,12 @@ export default class StepWizard {
                 </div>
                 <div class="space-y-1">
                     <h3 class="text-lg font-bold text-neutral-900">พร้อมติดตั้ง</h3>
-                    <p class="text-neutral-600 text-xs">พบไฟล์ <code class="text-black bg-neutral-100 px-2 py-0.5 rounded-md text-[11px] font-mono border border-neutral-200">Wazuh-Install-Ready.ova</code></p>
+                    <p class="text-neutral-600 text-xs"><code class="text-black bg-neutral-100 px-2 py-0.5 rounded-full text-[11px] font-mono border border-neutral-200">Wazuh-Install-Ready.ova</code></p>
                 </div>
                 <div class="space-y-2 pt-2">
                     <button id="btn-install-vm"
-                        class="w-full p-3 rounded-xl bg-black hover:bg-neutral-800 text-white text-sm font-bold shadow-lg shadow-neutral-900/10 transition-all active:scale-[0.98]">
-                        ติดตั้ง Virtual Machine
+                        class="w-full p-3 rounded-full bg-black hover:bg-neutral-800 text-white text-sm font-bold shadow-lg shadow-neutral-900/10 transition-all active:scale-[0.98]">
+                        ติดตั้ง WAZUH SERVER
                     </button>
                 </div>
             </div>
@@ -510,7 +523,7 @@ export default class StepWizard {
         }
     }
 
-    // Step 3 (Start/Stop) has been removed - VM control is now in the left column
+    // Step 4 (Start/Stop) has been removed - VM control is now in the left column
 
     renderStep3_VMCredentials() {
         const vmUser = this.credentials?.vm?.user || 'adison';
@@ -521,26 +534,26 @@ export default class StepWizard {
             
             <!-- Header -->
             <div class="text-center space-y-2">
-                <div class="inline-flex flex-col items-center justify-center mb-2">
-                    <div class="w-20 h-20 flex items-center justify-center mb-1">
+                <div class="inline-flex flex-col items-center justify-center">
+                    <div class="w-14 h-14 flex items-center justify-center mb-1">
                         <img src="UbuntuCoF.svg.png" class="w-full h-full object-contain drop-shadow-lg hover:scale-110 transition-transform duration-500" alt="Ubuntu">
                     </div>
                     <span class="text-[9px] font-mono text-neutral-400 font-bold bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200 shadow-sm">v${this.versions?.ubuntu || '22.04'}</span>
                 </div>
                 <div>
-                    <h3 class="text-base font-bold text-neutral-900 tracking-tight">เข้าสู่ระบบ Virtual Machine</h3>
+                    <h3 class="text-base font-bold text-neutral-900 tracking-tight">เข้าสู่ระบบ Ubuntu</h3>
                     <p class="text-[10px] text-neutral-500 uppercase tracking-widest">ข้อมูลสำหรับเข้าสู่ระบบ</p>
                 </div>
             </div>
 
             <!-- Login Status Indicator (Polled) -->
             <div id="login-status-indicator" class="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 border border-amber-200 shadow-sm transition-all">
-                <div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
-                <span class="text-[10px] text-amber-700 font-bold tracking-wider">กำลังรอการเข้าสู่ระบบ...</span>
+                <div class="w-1 h-1 rounded-full bg-amber-500 animate-pulse"></div>
+                <span class="text-[8px] text-amber-700 font-bold tracking-wider">กำลังรอการเข้าสู่ระบบ...</span>
             </div>
 
             <!-- Credentials Card -->
-            <div class="w-full max-w-xs bg-white rounded-2xl p-3 border border-neutral-200 shadow-[0_4px_30px_rgb(0,0,0,0.04)] space-y-2">
+            <div class="w-full max-w-xs bg-white rounded-2xl p-2 border border-neutral-200 shadow-[0_4px_30px_rgb(0,0,0,0.04)] space-y-2">
                 <div class="flex items-center justify-between px-2 pb-1 border-b border-neutral-100">
                     <span class="text-[9px] font-bold text-neutral-900 uppercase tracking-[0.2em] py-1">รายละเอียดบัญชี</span>
                 </div>
@@ -593,44 +606,54 @@ export default class StepWizard {
         const wazuhPass = this.credentials?.wazuh?.pass || 'admin';
         const hasIp = this.wazuhIp && this.ipFound;
 
+        // Status Styles
+        const statusClass = hasIp 
+            ? "bg-emerald-100 border-emerald-200" 
+            : "bg-red-100 border-red-200";
+        
+        const statusDotClass = hasIp
+            ? "bg-emerald-500"
+            : "bg-red-500 animate-pulse";
+            
+        const statusTextClass = hasIp
+            ? "text-emerald-700"
+            : "text-red-700";
+
         return `
-        <div class="flex flex-col h-full items-center justify-center space-y-4 relative py-2">
+        <div class="flex flex-col h-full items-center justify-center space-y-2 relative py-2">
             
             <!-- Header -->
-            <div class="text-center space-y-2">
-                <div class="inline-flex flex-col items-center justify-center mb-2">
-                    <div class="w-20 h-20 flex items-center justify-center mb-1">
+            <div class="text-center space-y-1">
+                <div class="inline-flex flex-col items-center justify-center">
+                    <div class="w-14 h-14 flex items-center justify-center mb-1">
                         <img src="images.jpg" class="w-full h-full object-cover rounded-2xl drop-shadow-lg hover:scale-105 hover:rotate-3 transition-all duration-500" alt="Wazuh">
                     </div>
                     <span class="text-[9px] font-mono text-neutral-400 font-bold bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200 shadow-sm">v${this.versions?.wazuh || '4.9.0'}</span>
                 </div>
                 <div>
                     <h3 class="text-base font-bold text-neutral-900 tracking-tight">เข้าใช้งาน Wazuh Dashboard</h3>
-                    <p class="text-[10px] text-neutral-500 uppercase tracking-widest">การเชื่อมต่อ</p>
                 </div>
             </div>
 
-            <!-- Connection Status -->
-            <div class="flex justify-center">
-                ${hasIp 
-                    ? `<div class="flex items-center gap-1.5 bg-emerald-500 border border-emerald-400 px-3 py-1 rounded-full shadow-md"><div class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div><span class="text-[9px] font-bold text-white tracking-widest">พบ SERVER</span></div>`
-                    : `<div class="flex items-center gap-1.5 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full"><div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div><span class="text-[9px] font-bold text-amber-700 tracking-widest">ไม่พบ SERVER</span></div>`
-                }
+            <!-- Status Indicator -->
+            <div id="wazuh-server-status" class="flex items-center gap-2 px-4 py-2 rounded-full ${statusClass} border shadow-sm transition-all">
+                <div class="w-1 h-1 rounded-full ${statusDotClass}"></div>
+                <span class="text-[8px] ${statusTextClass} font-bold tracking-wider uppercase">WAZUH SERVER</span>
             </div>
 
             <!-- IP Input Section -->
-            <div class="w-full max-w-xs space-y-2">
+            <div class="w-full max-w-xs p-1">
                 <div class="relative group">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <div class="pl-3 flex items-center pointer-events-none">
                         <span class="text-neutral-400 group-focus-within:text-black transition-colors">
                         </span>
                     </div>
                     
                     <input type="text" 
                         id="wazuh-ip-input" 
-                        placeholder="172.x.x.x"
+                        placeholder="IP wazuh address"
                         value="${hasIp ? this.wazuhIp : ''}"
-                        class="w-full pl-3 pr-20 py-3 bg-white border ${hasIp ? 'border-gray-200 text-black shadow-sm' : 'border-gray-200 text-neutral-600'} rounded-full focus:outline-none focus:border-gray-200 focus:ring-1 focus:ring-black transition-all font-mono text-sm shadow-[0_2px_10px_rgb(0,0,0,0.02)]"
+                        class="w-full pl-3 pr-20 py-3 bg-white border ${hasIp ? 'border-gray-200 text-black shadow-sm' : 'border-gray-200 text-neutral-600'} rounded-full focus:outline-none focus:border-gray-200 focus:ring-1 focus:ring-black transition-all font-mono text-xs shadow-[0_2px_10px_rgb(0,0,0,0.02)]"
                     />
 
                     <!-- Actions Container -->
@@ -659,12 +682,12 @@ export default class StepWizard {
             </div>
 
             <!-- Credentials Card -->
-             <div class="w-full max-w-xs bg-white rounded-2xl p-3 border border-neutral-200 shadow-[0_4px_30px_rgb(0,0,0,0.04)] space-y-2">
+             <div class="w-full max-w-xs bg-white rounded-2xl p-2 border border-neutral-200 shadow-[0_4px_30px_rgb(0,0,0,0.04)] space-y-1.5">
                 <div class="flex items-center justify-between px-2 pb-1 border-b border-neutral-100">
                     <span class="text-[9px] font-bold text-neutral-900 uppercase tracking-[0.2em] py-1">ข้อมูลสำหรับผู้ดูแลระบบ</span>
                 </div>
                 
-                <div class="flex flex-col gap-2">
+                <div class="flex flex-col gap-1.5">
                     <!-- Username Row -->
                     <div class="group flex items-center justify-between p-2 pl-3 bg-neutral-50 rounded-xl border border-neutral-200 hover:border-black hover:bg-white transition-all duration-300">
                         <div class="flex items-center gap-3">
@@ -705,6 +728,7 @@ export default class StepWizard {
             </div>
 
         </div>
+        
         `;
     }
 
@@ -713,21 +737,34 @@ export default class StepWizard {
         const btnInstallVbox = this.container.querySelector('#btn-install-vbox');
         if (btnInstallVbox) {
             btnInstallVbox.addEventListener('click', async () => {
-                this.setLoading(true, "กำลังติดตั้ง VirtualBox...");
+                if (window.GlobalProgress) {
+                    window.GlobalProgress.show('Installing VirtualBox', 'กำลังติดตั้งโปรแกรม VirtualBox...', 45000);
+                } else {
+                    this.setLoading(true, "กำลังติดตั้ง Virtual Box...");
+                }
+
                 try {
                     const res = await eel.install_virtualbox()();
+                    
+                    if (window.GlobalProgress) window.GlobalProgress.finish();
+                    
                     this.log(res.msg, res.status);
+
+                    if (res.status === 'success') {
+                        setTimeout(() => {
+                            this.checkInitialState(false);
+                        }, 1200);
+                    }
                 } catch (e) {
-                    this.log("ติดตั้ง VirtualBox ไม่สำเร็จ", "error");
+                    if (window.GlobalProgress) window.GlobalProgress.hide();
+                    this.log("ติดตั้ง Virtual Box ไม่สำเร็จ", "error");
                 }
-                this.setLoading(false);
+                
+                if (!window.GlobalProgress) this.setLoading(false);
             });
         }
 
-        const btnRecheck = this.container.querySelector('#btn-recheck');
-        if (btnRecheck) {
-            btnRecheck.addEventListener('click', () => this.checkInitialState());
-        }
+
 
         // Step 2 - Recheck OVA (when OVA not found)
         const btnRecheckOva = this.container.querySelector('#btn-recheck-ova');
