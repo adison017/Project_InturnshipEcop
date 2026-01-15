@@ -196,7 +196,7 @@ class VMToggleController {
                 if (!this.vmExists) {
                     this.btn.disabled = true;
                     this.btn.title = 'ยังไม่ได้ติดตั้ง Virtual Machine';
-                    this.updateText('ไม่พบ Virtual Machine', 'text-slate-400');
+                    this.updateText('ติดตั้งยังไม่สมบูรณ์', 'text-slate-400');
                     return;
                 }
             }
