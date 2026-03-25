@@ -330,6 +330,89 @@ def get_credentials():
     }
 
 @eel.expose
+def get_agent_config_ip():
+    """Reads the current IP address configured in the local ossec.conf file."""
+    config_path = r"C:\Program Files (x86)\ossec-agent\ossec.conf"
+    if not os.path.exists(config_path):
+        return {"status": "error", "msg": "ไม่พบไฟล์ ossec.conf"}
+    
+    try:
+        with open(config_path, 'r') as f:
+            content = f.read()
+            # Use regex to find the address tag content
+            import re
+            match = re.search(r"<address>(.*?)</address>", content)
+            if match:
+                return {"status": "success", "ip": match.group(1)}
+            else:
+                return {"status": "error", "msg": "ไม่พบแท็ก <address> ในไฟล์"}
+    except Exception as e:
+        return {"status": "error", "msg": str(e)}
+
+@eel.expose
+def run_update_ossec_ip(new_ip):
+    """Runs the PowerShell script to update OSSEC server IP"""
+    script_path = os.path.abspath("update_ossec_ip.ps1")
+    if not os.path.exists(script_path):
+        return {"status": "error", "msg": f"ไม่พบไฟล์สคริปต์: {script_path}"}
+    
+    try:
+        # 1. Prepare and run the elevated PowerShell command
+        script_abs_path = os.path.abspath(script_path)
+        # The script now logs to the user's TEMP directory
+        temp_dir = os.environ.get("TEMP", os.environ.get("TMP", "C:\\Windows\\Temp"))
+        log_path = os.path.join(temp_dir, "ip_update.log")
+        
+        # Build the command string for Start-Process
+        ps_cmd = f"Start-Process powershell -ArgumentList '-ExecutionPolicy Bypass', '-File', '\"{script_abs_path}\"', '-NewIP', '{new_ip}' -Verb RunAs -Wait -WindowStyle Hidden"
+        
+        cmd = ["powershell.exe", "-Command", ps_cmd]
+        
+        if IS_WINDOWS:
+            # We run the command and wait for it to finish
+            result = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            
+            # 2. Verify success by checking the file content directly
+            # Give it a bit more time for the service to restart and release files
+            for _ in range(3):
+                time.sleep(1) 
+                try:
+                    with open(r"C:\Program Files (x86)\ossec-agent\ossec.conf", "r") as f:
+                        content = f.read()
+                        if f"<address>{new_ip}</address>" in content or f"<manager_address>{new_ip}</manager_address>" in content:
+                            return {"status": "success", "msg": f"อัปเดต IP เป็น {new_ip} เรียบร้อยแล้ว!", "output": result.stdout}
+                except Exception as read_err:
+                    print(f"Error checking config file: {read_err}")
+
+            # 3. If verification failed, check the log file created by the PS script
+            log_content = ""
+            if os.path.exists(log_path):
+                try:
+                    with open(log_path, "r", encoding="utf-16" if os.path.getsize(log_path) > 0 else "utf-8") as f:
+                        log_content = f.read()
+                    # Clean up log for next time
+                    # os.remove(log_path) 
+                except: pass
+            
+            error_details = f"ไม่พบการเปลี่ยนแปลงในไฟล์ ossec.conf\nLog: {log_content}"
+            return {"status": "error", "msg": "การอัปเดตไฟล์ล้มเหลว (ตรวจสอบสิทธิ์ Administrator หรือ Service Lock)", "output": error_details}
+        else:
+            return {"status": "error", "msg": "รองรับเฉพาะระบบปฏิบัติการ Windows เท่านั้น"}
+            
+        if result.returncode == 0:
+            return {"status": "success", "msg": "อัปเดต IP เรียบร้อยแล้ว!", "output": result.stdout}
+        else:
+            # Check for common "Access Denied" errors
+            error_msg = result.stderr or result.stdout or "การอัปเดตล้มเหลว"
+            if "Access is denied" in error_msg or "Unauthorized" in error_msg:
+                error_msg = "สิทธิ์เข้าถึงถูกปฏิเสธ (Access Denied): กรุณารันโปรแกรมนี้ด้วยสิทธิ์ Administrator"
+            
+            return {"status": "error", "msg": error_msg, "output": result.stdout + result.stderr}
+            
+    except Exception as e:
+        return {"status": "error", "msg": str(e)}
+
+@eel.expose
 def reset_window_size():
     """Resets the window size and centers it (Windows only)"""
     if IS_WINDOWS:

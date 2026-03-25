@@ -418,3 +418,49 @@ if (typeof eel !== 'undefined') {
     };
     tryReset();
 }
+
+// OSSEC IP Update Handler
+window.handleUpdateIP = async function() {
+    try {
+        UI.setStatus("กำลังดึงไอพีจาก Wazuh Server (VM)...", 'info');
+        
+        const ipRes = await eel.get_wazuh_ip()();
+        let targetIP = '';
+        let isAutoResult = false;
+
+        if (ipRes && ipRes.status === 'success') {
+            targetIP = ipRes.ip;
+            isAutoResult = true;
+            
+            const confirmed = await Notification.confirm(
+                `พบไอพีของ Wazuh Server อัตโนมัติ: <b class="text-emerald-600">${targetIP}</b><br><br>ต้องการอัปเดต Agent ให้เชื่อมต่อไปที่ไอพีนี้ใช่หรือไม่?`,
+                "ตรวจพบ IP อัตโนมัติ",
+                "success"
+            );
+            if (!confirmed) return;
+        } else {
+            // Fallback to manual prompt if auto-fetch fails or is pending
+            const msg = (ipRes && ipRes.msg) ? ` (${ipRes.msg})` : '';
+            // For now, keep prompt for input, but we could make a custom input modal if needed.
+            // But since the primary flow is "Auto", let's focus on the alert/confirm.
+            targetIP = prompt("ไม่สามารถดึงไอพีอัตโนมัติได้" + msg + "\n\nกรุณาระบุไอพีของ Wazuh Server ด้วยตนเอง:", "172.19.1.174");
+        }
+        
+        if (targetIP) {
+            UI.setStatus(`กำลังอัปเดต IP ไปที่: ${targetIP}...`, 'warning');
+            
+            const result = await eel.run_update_ossec_ip(targetIP)();
+            
+            if (result.status === 'success') {
+                UI.setStatus(`อัปเดตสำเร็จ: ${result.msg}`, 'success');
+                await Notification.show(result.msg, "success");
+            } else {
+                UI.setStatus(`อัปเดตล้มเหลว: ${result.msg}`, 'error');
+                await Notification.show(result.msg, "error");
+            }
+        }
+    } catch (e) {
+        console.error("IP Update Error:", e);
+        UI.setStatus("เกิดข้อผิดพลาดในการรันสคริปต์", 'error');
+    }
+};
