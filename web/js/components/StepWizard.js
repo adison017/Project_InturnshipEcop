@@ -14,8 +14,10 @@ export default class StepWizard {
         this.vmRunning = false;
         this.credentials = null;
         this.wazuhIp = null;
+        this.agentConfigIp = null; // New: To track current config in ossec.conf
         this.ipInterval = null;
         this.ipFound = false;
+        this.ipFoundBefore = false; // New: For one-time logging
         this.loginBypassed = false; // New flag
         this.versions = { ubuntu: '', wazuh: '' }; // Version info
 
@@ -195,42 +197,52 @@ export default class StepWizard {
 
     async pollIp() {
         try {
+            // 1. Get VM IP (Wazuh Server)
             const res = await eel.get_wazuh_ip()();
             
+            // 2. Get Agent Config IP (ossec.conf)
+            const agentRes = await eel.get_agent_config_ip()();
+            if (agentRes.status === 'success') {
+                this.agentConfigIp = agentRes.ip;
+            }
+
             const statusEl = this.container.querySelector('#wazuh-server-status');
             const ipInput = this.container.querySelector('#wazuh-ip-input');
             const btnOpen = this.container.querySelector('#btn-open-dashboard');
 
             if (res.status === 'success' && res.ip) {
-                // If previously not found or just starting
-                if (!this.ipFound) {
-                    this.wazuhIp = res.ip;
-                    this.ipFound = true;
-                    this.stopIpPolling();
+                this.wazuhIp = res.ip;
+                this.ipFound = true;
+                
+                // Update the input field
+                if (ipInput && !ipInput.matches(':focus')) {
+                    ipInput.value = res.ip;
+                    ipInput.classList.remove('border-neutral-200');
+                    ipInput.classList.add('border-black', 'bg-white', 'text-black', 'shadow-sm');
+                }
 
-                    // Update the input field
-                    if (ipInput) {
-                        ipInput.value = res.ip;
-                        ipInput.classList.remove('border-neutral-200');
-                        ipInput.classList.add('border-black', 'bg-white', 'text-black', 'shadow-sm');
-                    }
+                // Update status indicator to Green
+                if (statusEl) {
+                    statusEl.className = "flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 border border-emerald-200 shadow-sm transition-all";
+                    statusEl.innerHTML = `
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                        <span class="text-[10px] text-emerald-700 font-bold tracking-wider uppercase">WAZUH SERVER</span>
+                    `;
+                }
 
-                    // Update status indicator to Green
-                    if (statusEl) {
-                        statusEl.className = "flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 border border-emerald-200 shadow-sm transition-all";
-                        statusEl.innerHTML = `
-                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                            <span class="text-[10px] text-emerald-700 font-bold tracking-wider uppercase">WAZUH SERVER</span>
-                        `;
-                    }
+                // Enable the button
+                if (btnOpen) {
+                    btnOpen.disabled = false;
+                    btnOpen.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
 
-                    // Enable the button
-                    if (btnOpen) {
-                        btnOpen.disabled = false;
-                        btnOpen.classList.remove('opacity-50', 'cursor-not-allowed');
-                    }
+                // Update the Sync Button status
+                this.updateSyncButtonState();
 
+                // If this is the first time we find it, log it
+                if (!this.ipFoundBefore) {
                     this.log(`พบ IP Address: ${res.ip}`, 'success');
+                    this.ipFoundBefore = true;
                 }
             } else {
                 // Not found - Update Status to Red
@@ -243,7 +255,51 @@ export default class StepWizard {
                 }
             }
         } catch (e) {
-            console.log("Polling IP...", e);
+            console.log("Polling IP error...", e);
+        }
+    }
+
+    updateSyncButtonState() {
+        const btnUpdateIp = this.container.querySelector('#btn-update-ip');
+        if (!btnUpdateIp) return;
+
+        const isMismatch = this.wazuhIp && this.agentConfigIp && (this.wazuhIp !== this.agentConfigIp);
+        const label = btnUpdateIp.querySelector('span:first-child');
+        const subLabel = btnUpdateIp.querySelector('span:last-child');
+        const iconContainer = btnUpdateIp.querySelector('.w-10.h-10');
+
+        if (isMismatch) {
+            // CRITICAL STATE
+            btnUpdateIp.classList.remove('bg-emerald-500', 'hover:bg-emerald-600', 'shadow-emerald-500/30');
+            btnUpdateIp.classList.add('bg-amber-500', 'hover:bg-amber-600', 'shadow-amber-500/40', 'animate-pulse-slow');
+            
+            if (label) label.textContent = "CRITICAL: IP MISMATCH";
+            if (subLabel) subLabel.textContent = `SERVER: ${this.wazuhIp} (กดเพื่อแก้ไข)`;
+            if (iconContainer) {
+                iconContainer.classList.remove('bg-white/20');
+                iconContainer.classList.add('bg-red-600/30');
+                iconContainer.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                `;
+            }
+        } else if (this.wazuhIp && this.agentConfigIp === this.wazuhIp) {
+            // SYNCED STATE
+            btnUpdateIp.classList.remove('bg-amber-500', 'hover:bg-amber-600', 'animate-pulse-slow');
+            btnUpdateIp.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+            
+            if (label) label.textContent = "AGENT SYNCED";
+            if (subLabel) subLabel.textContent = "ระบบเชื่อมต่อถูกต้องแล้ว";
+            if (iconContainer) {
+                iconContainer.classList.remove('bg-red-600/30');
+                iconContainer.classList.add('bg-white/20');
+                iconContainer.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                `;
+            }
         }
     }
 
@@ -739,6 +795,29 @@ export default class StepWizard {
                 </div>
             </div>
 
+            <!-- Agent Sync/Update Action -->
+            <div class="w-full max-w-xs pt-2">
+                <button id="btn-update-ip" 
+                        class="w-full group relative flex items-center justify-between p-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-[0_10px_20px_-5px_rgba(16,185,129,0.3)] hover:shadow-[0_15px_30px_-5px_rgba(16,185,129,0.4)] transition-all duration-300 hover:-translate-y-1 active:scale-95">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </div>
+                        <div class="flex flex-col items-start pt-1">
+                            <span class="text-xs font-bold uppercase tracking-wider">SYNC AGENT IP</span>
+                            <span class="text-[9px] text-emerald-100 font-medium uppercase tracking-widest opacity-80">กดเพื่ออัปเดตการเชื่อมต่อ</span>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </button>
+            </div>
+
         </div>
         
         `;
@@ -865,6 +944,16 @@ export default class StepWizard {
                 this.wazuhIp = null;
                 this.render();
                 this.startIpPolling();
+            });
+        }
+
+        // Step 4 - IP Update Button
+        const btnUpdateIp = this.container.querySelector('#btn-update-ip');
+        if (btnUpdateIp) {
+            btnUpdateIp.addEventListener('click', () => {
+                if (window.handleUpdateIP) {
+                    window.handleUpdateIP();
+                }
             });
         }
 

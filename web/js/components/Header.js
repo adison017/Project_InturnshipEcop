@@ -24,7 +24,7 @@ export default function Header() {
             </div>
         </div>
         
-        <div class="mt-2 space-y-0">
+        <div class="mt-2 space-y-0 relative">
             <h1 class="text-xl font-bold tracking-tight text-neutral-900 font-sans">
                 WAZUH <span class="font-light">SERVER</span>
             </h1>
